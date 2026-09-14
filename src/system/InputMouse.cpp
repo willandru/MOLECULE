@@ -3,7 +3,13 @@
 #include <GLFW/glfw3.h>
 
 
-InputMouse::InputMouse(void* window)
+// ============================================================
+// CONSTRUCTOR
+// ============================================================
+
+InputMouse::InputMouse(
+    void* window
+)
     : window(window),
       position(0.0f),
       previousPosition(0.0f),
@@ -11,16 +17,40 @@ InputMouse::InputMouse(void* window)
       scrollDelta(0.0f),
       middleButtonPressed(false)
 {
+    GLFWwindow* glfwWindow =
+        static_cast<GLFWwindow*>(window);
+
+
+    glfwSetWindowUserPointer(
+        glfwWindow,
+        this
+    );
+
+
+    glfwSetScrollCallback(
+        glfwWindow,
+        scrollCallback
+    );
 }
 
+
+// ============================================================
+// UPDATE
+// ============================================================
 
 void InputMouse::update()
 {
     GLFWwindow* glfwWindow =
         static_cast<GLFWwindow*>(window);
 
+
+    // --------------------------------------------------------
+    // POSITION
+    // --------------------------------------------------------
+
     double mouseX;
     double mouseY;
+
 
     glfwGetCursorPos(
         glfwWindow,
@@ -28,24 +58,66 @@ void InputMouse::update()
         &mouseY
     );
 
-    position = glm::vec2(
-        static_cast<float>(mouseX),
-        static_cast<float>(mouseY)
-    );
 
-    delta = position - previousPosition;
+    position =
+        glm::vec2(
+            static_cast<float>(mouseX),
+            static_cast<float>(mouseY)
+        );
 
-    previousPosition = position;
+
+    // --------------------------------------------------------
+    // DELTA
+    // --------------------------------------------------------
+
+    delta =
+        position -
+        previousPosition;
+
+
+    previousPosition =
+        position;
+
+
+    // --------------------------------------------------------
+    // MIDDLE BUTTON
+    // --------------------------------------------------------
 
     middleButtonPressed =
         glfwGetMouseButton(
             glfwWindow,
             GLFW_MOUSE_BUTTON_MIDDLE
         ) == GLFW_PRESS;
-
-    scrollDelta = 0.0f;
 }
 
+
+// ============================================================
+// SCROLL CALLBACK
+// ============================================================
+
+void InputMouse::scrollCallback(
+    GLFWwindow* window,
+    double,
+    double yOffset
+)
+{
+    InputMouse* mouse =
+        static_cast<InputMouse*>(
+            glfwGetWindowUserPointer(window)
+        );
+
+
+    if (mouse != nullptr)
+    {
+        mouse->scrollDelta +=
+            static_cast<float>(yOffset);
+    }
+}
+
+
+// ============================================================
+// MIDDLE BUTTON
+// ============================================================
 
 bool InputMouse::isMiddleButtonPressed() const
 {
@@ -53,11 +125,19 @@ bool InputMouse::isMiddleButtonPressed() const
 }
 
 
+// ============================================================
+// POSITION
+// ============================================================
+
 const glm::vec2& InputMouse::getPosition() const
 {
     return position;
 }
 
+
+// ============================================================
+// DELTA
+// ============================================================
 
 const glm::vec2& InputMouse::getDelta() const
 {
@@ -65,7 +145,21 @@ const glm::vec2& InputMouse::getDelta() const
 }
 
 
+// ============================================================
+// SCROLL
+// ============================================================
+
 float InputMouse::getScrollDelta() const
 {
     return scrollDelta;
+}
+
+
+// ============================================================
+// CLEAR SCROLL
+// ============================================================
+
+void InputMouse::clearScrollDelta()
+{
+    scrollDelta = 0.0f;
 }

@@ -22,12 +22,13 @@ int main()
     Window window(
         1280,
         720,
-        "MOLECULE"
+        "MOLECULE",
+        true
     );
 
 
     Camera camera(
-        glm::vec3(0.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f),
         10.0f
     );
 
@@ -72,7 +73,9 @@ int main()
     // OPENGL
     // ========================================================
 
-    glEnable(GL_DEPTH_TEST);
+    glEnable(
+        GL_DEPTH_TEST
+    );
 
 
     // ========================================================
@@ -108,7 +111,52 @@ int main()
 
 
         // ----------------------------------------------------
-        // CAMERA
+        // CAMERA SPEED
+        // ----------------------------------------------------
+
+        const float cameraSpeed =
+            5.0f *
+            timer.getDeltaTime();
+
+
+        // ----------------------------------------------------
+        // WASD
+        // ----------------------------------------------------
+
+        if (keyboard.isKeyPressed(GLFW_KEY_W))
+        {
+            camera.moveForward(
+                cameraSpeed
+            );
+        }
+
+
+        if (keyboard.isKeyPressed(GLFW_KEY_S))
+        {
+            camera.moveForward(
+                -cameraSpeed
+            );
+        }
+
+
+        if (keyboard.isKeyPressed(GLFW_KEY_A))
+        {
+            camera.moveRight(
+                -cameraSpeed
+            );
+        }
+
+
+        if (keyboard.isKeyPressed(GLFW_KEY_D))
+        {
+            camera.moveRight(
+                cameraSpeed
+            );
+        }
+
+
+        // ----------------------------------------------------
+        // MIDDLE MOUSE ORBIT
         // ----------------------------------------------------
 
         if (mouse.isMiddleButtonPressed())
@@ -116,12 +164,28 @@ int main()
             const glm::vec2& delta =
                 mouse.getDelta();
 
-
             camera.orbit(
                 delta.x,
                 delta.y
             );
         }
+
+
+        // ----------------------------------------------------
+        // MOUSE WHEEL ZOOM
+        // ----------------------------------------------------
+
+        const float scroll =
+            mouse.getScrollDelta();
+
+        if (scroll != 0.0f)
+        {
+            camera.zoom(
+                scroll
+            );
+        }
+
+        mouse.clearScrollDelta();
 
 
         // ----------------------------------------------------

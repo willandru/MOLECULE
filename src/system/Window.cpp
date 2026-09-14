@@ -6,59 +6,201 @@
 #include <stdexcept>
 
 
-Window::Window(int width, int height, const std::string& title)
+Window::Window(
+    int width,
+    int height,
+    const std::string& title,
+    bool fullscreen
+)
     : window(nullptr),
       width(width),
       height(height),
       title(title)
 {
+    // ========================================================
+    // GLFW
+    // ========================================================
+
     if (!glfwInit())
     {
-        throw std::runtime_error("Failed to initialize GLFW.");
+        throw std::runtime_error(
+            "Failed to initialize GLFW."
+        );
     }
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // ========================================================
+    // OPENGL
+    // ========================================================
+
+    glfwWindowHint(
+        GLFW_CONTEXT_VERSION_MAJOR,
+        3
+    );
+
+    glfwWindowHint(
+        GLFW_CONTEXT_VERSION_MINOR,
+        3
+    );
+
+    glfwWindowHint(
+        GLFW_OPENGL_PROFILE,
+        GLFW_OPENGL_CORE_PROFILE
+    );
 
 #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+
+    glfwWindowHint(
+        GLFW_OPENGL_FORWARD_COMPAT,
+        GL_TRUE
+    );
+
 #endif
 
-    window = glfwCreateWindow(
-        width,
-        height,
-        title.c_str(),
-        nullptr,
-        nullptr
-    );
+
+    // ========================================================
+    // WINDOW
+    // ========================================================
+
+    GLFWmonitor* monitor = nullptr;
+
+    if (fullscreen)
+    {
+        monitor =
+            glfwGetPrimaryMonitor();
+
+        if (monitor == nullptr)
+        {
+            glfwTerminate();
+
+            throw std::runtime_error(
+                "Failed to find primary monitor."
+            );
+        }
+
+
+        const GLFWvidmode* videoMode =
+            glfwGetVideoMode(monitor);
+
+        if (videoMode == nullptr)
+        {
+            glfwTerminate();
+
+            throw std::runtime_error(
+                "Failed to obtain monitor video mode."
+            );
+        }
+
+
+        this->width =
+            videoMode->width;
+
+        this->height =
+            videoMode->height;
+
+
+        window =
+            glfwCreateWindow(
+                this->width,
+                this->height,
+                title.c_str(),
+                monitor,
+                nullptr
+            );
+    }
+    else
+    {
+        window =
+            glfwCreateWindow(
+                width,
+                height,
+                title.c_str(),
+                nullptr,
+                nullptr
+            );
+    }
+
+
+    // ========================================================
+    // WINDOW CREATION CHECK
+    // ========================================================
 
     if (!window)
     {
         glfwTerminate();
-        throw std::runtime_error("Failed to create GLFW window.");
+
+        throw std::runtime_error(
+            "Failed to create GLFW window."
+        );
     }
+
+
+    // ========================================================
+    // OPENGL CONTEXT
+    // ========================================================
 
     glfwMakeContextCurrent(window);
 
+
+    // ========================================================
+    // GLAD
+    // ========================================================
+
     if (!gladLoadGLLoader(
-        reinterpret_cast<GLADloadproc>(glfwGetProcAddress)))
+        reinterpret_cast<GLADloadproc>(
+            glfwGetProcAddress
+        )
+    ))
     {
         glfwDestroyWindow(window);
+
         glfwTerminate();
 
-        throw std::runtime_error("Failed to initialize GLAD.");
+        throw std::runtime_error(
+            "Failed to initialize GLAD."
+        );
     }
+
+
+    // ========================================================
+    // VIEWPORT
+    // ========================================================
+
+    int framebufferWidth;
+    int framebufferHeight;
+
+    glfwGetFramebufferSize(
+        window,
+        &framebufferWidth,
+        &framebufferHeight
+    );
+
+    glViewport(
+        0,
+        0,
+        framebufferWidth,
+        framebufferHeight
+    );
+
+
+    // ========================================================
+    // VSYNC
+    // ========================================================
 
     glfwSwapInterval(1);
 }
 
+
+// ============================================================
+// DESTRUCTOR
+// ============================================================
 
 Window::~Window()
 {
     if (window)
     {
         glfwDestroyWindow(window);
+
         window = nullptr;
     }
 
@@ -66,15 +208,27 @@ Window::~Window()
 }
 
 
+// ============================================================
+// WINDOW STATE
+// ============================================================
+
 bool Window::shouldClose() const
 {
-    return glfwWindowShouldClose(window);
+    return glfwWindowShouldClose(
+        window
+    );
 }
 
 
+// ============================================================
+// BUFFER / EVENTS
+// ============================================================
+
 void Window::swapBuffers()
 {
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(
+        window
+    );
 }
 
 
@@ -83,6 +237,10 @@ void Window::pollEvents()
     glfwPollEvents();
 }
 
+
+// ============================================================
+// SIZE
+// ============================================================
 
 int Window::getWidth() const
 {
@@ -107,6 +265,10 @@ float Window::getAspectRatio() const
            static_cast<float>(height);
 }
 
+
+// ============================================================
+// HANDLE
+// ============================================================
 
 GLFWwindow* Window::getHandle() const
 {

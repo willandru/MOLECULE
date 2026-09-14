@@ -2,6 +2,10 @@
 
 #include <glm/glm.hpp>
 
+
+struct GLFWwindow;
+
+
 class InputMouse
 {
 public:
@@ -13,9 +17,23 @@ public:
 
     const glm::vec2& getPosition() const;
     const glm::vec2& getDelta() const;
+
     float getScrollDelta() const;
 
+    void clearScrollDelta();
+
+
 private:
+
+    static void scrollCallback(
+        GLFWwindow* window,
+        double xOffset,
+        double yOffset
+    );
+
+
+private:
+
     void* window;
 
     glm::vec2 position;

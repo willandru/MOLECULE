@@ -7,6 +7,10 @@
 #include <cmath>
 
 
+// ============================================================
+// CONSTRUCTOR
+// ============================================================
+
 Camera::Camera(
     const glm::vec3& target,
     float distance,
@@ -29,25 +33,75 @@ Camera::Camera(
 
 
 // ============================================================
+// MOVE FORWARD / BACKWARD
+// ============================================================
+
+void Camera::moveForward(float amount)
+{
+    glm::vec3 direction =
+        glm::normalize(
+            target - position
+        );
+
+
+    position += direction * amount;
+    target += direction * amount;
+}
+
+
+// ============================================================
+// MOVE RIGHT / LEFT
+// ============================================================
+
+void Camera::moveRight(float amount)
+{
+    glm::vec3 direction =
+        glm::normalize(
+            target - position
+        );
+
+
+    glm::vec3 right =
+        glm::normalize(
+            glm::cross(
+                direction,
+                glm::vec3(0.0f, 1.0f, 0.0f)
+            )
+        );
+
+
+    position += right * amount;
+    target += right * amount;
+}
+
+
+// ============================================================
 // ORBIT
 // ============================================================
 
-void Camera::orbit(float deltaX, float deltaY)
+void Camera::orbit(
+    float deltaX,
+    float deltaY
+)
 {
     constexpr float sensitivity = 0.005f;
+
 
     yaw -= deltaX * sensitivity;
     pitch -= deltaY * sensitivity;
 
-    // Prevent the camera from flipping over.
+
     constexpr float limit =
         glm::half_pi<float>() - 0.01f;
 
-    pitch = std::clamp(
-        pitch,
-        -limit,
-        limit
-    );
+
+    pitch =
+        std::clamp(
+            pitch,
+            -limit,
+            limit
+        );
+
 
     updatePosition();
 }
@@ -61,50 +115,70 @@ void Camera::zoom(float delta)
 {
     constexpr float zoomSpeed = 0.5f;
 
-    distance -= delta * zoomSpeed;
 
-    // Prevent the camera from entering the target.
-    distance = std::clamp(
-        distance,
-        0.5f,
-        1000.0f
-    );
+    distance -=
+        delta * zoomSpeed;
+
+
+    distance =
+        std::clamp(
+            distance,
+            0.5f,
+            1000.0f
+        );
+
 
     updatePosition();
 }
 
 
 // ============================================================
-// UPDATE POSITION
+// UPDATE ORBIT POSITION
 // ============================================================
 
 void Camera::updatePosition()
 {
-    const float cosPitch = std::cos(pitch);
-    const float sinPitch = std::sin(pitch);
+    const float cosPitch =
+        std::cos(pitch);
 
-    const float cosYaw = std::cos(yaw);
-    const float sinYaw = std::sin(yaw);
+    const float sinPitch =
+        std::sin(pitch);
+
+    const float cosYaw =
+        std::cos(yaw);
+
+    const float sinYaw =
+        std::sin(yaw);
+
 
     position.x =
         target.x +
-        distance * cosPitch * sinYaw;
+        distance *
+        cosPitch *
+        sinYaw;
+
 
     position.y =
         target.y +
-        distance * sinPitch;
+        distance *
+        sinPitch;
+
 
     position.z =
         target.z +
-        distance * cosPitch * cosYaw;
+        distance *
+        cosPitch *
+        cosYaw;
 }
 
 
 // ============================================================
-// SETTERS
+// TARGET
 // ============================================================
 
-void Camera::setTarget(const glm::vec3& target)
+void Camera::setTarget(
+    const glm::vec3& target
+)
 {
     this->target = target;
 
@@ -112,17 +186,29 @@ void Camera::setTarget(const glm::vec3& target)
 }
 
 
-void Camera::setDistance(float distance)
+// ============================================================
+// DISTANCE
+// ============================================================
+
+void Camera::setDistance(
+    float distance
+)
 {
-    this->distance = std::clamp(
-        distance,
-        0.5f,
-        1000.0f
-    );
+    this->distance =
+        std::clamp(
+            distance,
+            0.5f,
+            1000.0f
+        );
+
 
     updatePosition();
 }
 
+
+// ============================================================
+// PROJECTION
+// ============================================================
 
 void Camera::setFOV(float fov)
 {
@@ -130,19 +216,25 @@ void Camera::setFOV(float fov)
 }
 
 
-void Camera::setNearPlane(float nearPlane)
+void Camera::setNearPlane(
+    float nearPlane
+)
 {
     this->nearPlane = nearPlane;
 }
 
 
-void Camera::setFarPlane(float farPlane)
+void Camera::setFarPlane(
+    float farPlane
+)
 {
     this->farPlane = farPlane;
 }
 
 
-void Camera::setAspectRatio(float aspectRatio)
+void Camera::setAspectRatio(
+    float aspectRatio
+)
 {
     this->aspectRatio = aspectRatio;
 }

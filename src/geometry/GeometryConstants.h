@@ -25,9 +25,9 @@ namespace GeometryConstants
     // This gives a convenient visual reference for
     // atomic and small molecular structures.
 
-    constexpr float GRID_SIZE = 10.0f * ANGSTROM;
+    constexpr float GRID_SIZE = 100.0f * ANGSTROM;
 
-    constexpr int GRID_DIVISIONS = 10;
+    constexpr int GRID_DIVISIONS = 100;
 
 
     // ========================================================

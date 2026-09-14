@@ -2,9 +2,11 @@
 
 #include <glm/glm.hpp>
 
+
 class Camera
 {
 public:
+
     Camera(
         const glm::vec3& target = glm::vec3(0.0f),
         float distance = 10.0f,
@@ -13,36 +15,69 @@ public:
         float farPlane = 1000.0f
     );
 
-    // --------------------------------------------------------
-    // Camera control
-    // --------------------------------------------------------
 
-    void orbit(float deltaX, float deltaY);
+    // ========================================================
+    // CAMERA MOVEMENT
+    // ========================================================
+
+    void moveForward(float amount);
+    void moveRight(float amount);
+
+
+    // ========================================================
+    // CAMERA ORBIT
+    // ========================================================
+
+    void orbit(
+        float deltaX,
+        float deltaY
+    );
+
+
+    // ========================================================
+    // CAMERA ZOOM
+    // ========================================================
+
     void zoom(float delta);
 
-    // --------------------------------------------------------
-    // Camera configuration
-    // --------------------------------------------------------
 
-    void setTarget(const glm::vec3& target);
-    void setDistance(float distance);
+    // ========================================================
+    // TARGET / DISTANCE
+    // ========================================================
+
+    void setTarget(
+        const glm::vec3& target
+    );
+
+    void setDistance(
+        float distance
+    );
+
+
+    // ========================================================
+    // PROJECTION
+    // ========================================================
 
     void setFOV(float fov);
     void setNearPlane(float nearPlane);
     void setFarPlane(float farPlane);
 
-    void setAspectRatio(float aspectRatio);
+    void setAspectRatio(
+        float aspectRatio
+    );
 
-    // --------------------------------------------------------
-    // Matrices
-    // --------------------------------------------------------
+
+    // ========================================================
+    // MATRICES
+    // ========================================================
 
     glm::mat4 getViewMatrix() const;
     glm::mat4 getProjectionMatrix() const;
 
-    // --------------------------------------------------------
-    // Getters
-    // --------------------------------------------------------
+
+    // ========================================================
+    // GETTERS
+    // ========================================================
 
     const glm::vec3& getPosition() const;
     const glm::vec3& getTarget() const;
@@ -53,10 +88,14 @@ public:
     float getFarPlane() const;
     float getAspectRatio() const;
 
-private:
-    void updatePosition();
 
 private:
+
+    void updatePosition();
+
+
+private:
+
     glm::vec3 position;
     glm::vec3 target;
 
