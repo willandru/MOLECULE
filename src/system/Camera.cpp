@@ -36,7 +36,9 @@ Camera::Camera(
 // MOVE FORWARD / BACKWARD
 // ============================================================
 
-void Camera::moveForward(float amount)
+void Camera::moveForward(
+    float amount
+)
 {
     glm::vec3 direction =
         glm::normalize(
@@ -44,8 +46,12 @@ void Camera::moveForward(float amount)
         );
 
 
-    position += direction * amount;
-    target += direction * amount;
+    position +=
+        direction * amount;
+
+
+    target +=
+        direction * amount;
 }
 
 
@@ -53,7 +59,9 @@ void Camera::moveForward(float amount)
 // MOVE RIGHT / LEFT
 // ============================================================
 
-void Camera::moveRight(float amount)
+void Camera::moveRight(
+    float amount
+)
 {
     glm::vec3 direction =
         glm::normalize(
@@ -65,13 +73,21 @@ void Camera::moveRight(float amount)
         glm::normalize(
             glm::cross(
                 direction,
-                glm::vec3(0.0f, 1.0f, 0.0f)
+                glm::vec3(
+                    0.0f,
+                    1.0f,
+                    0.0f
+                )
             )
         );
 
 
-    position += right * amount;
-    target += right * amount;
+    position +=
+        right * amount;
+
+
+    target +=
+        right * amount;
 }
 
 
@@ -84,11 +100,16 @@ void Camera::orbit(
     float deltaY
 )
 {
-    constexpr float sensitivity = 0.005f;
+    constexpr float sensitivity =
+        0.005f;
 
 
-    yaw -= deltaX * sensitivity;
-    pitch -= deltaY * sensitivity;
+    yaw -=
+        deltaX * sensitivity;
+
+
+    pitch -=
+        deltaY * sensitivity;
 
 
     constexpr float limit =
@@ -108,12 +129,44 @@ void Camera::orbit(
 
 
 // ============================================================
+// SET ORIENTATION
+// ============================================================
+
+void Camera::setOrientation(
+    float yaw,
+    float pitch
+)
+{
+    this->yaw =
+        yaw;
+
+
+    constexpr float limit =
+        glm::half_pi<float>() - 0.01f;
+
+
+    this->pitch =
+        std::clamp(
+            pitch,
+            -limit,
+            limit
+        );
+
+
+    updatePosition();
+}
+
+
+// ============================================================
 // ZOOM
 // ============================================================
 
-void Camera::zoom(float delta)
+void Camera::zoom(
+    float delta
+)
 {
-    constexpr float zoomSpeed = 0.5f;
+    constexpr float zoomSpeed =
+        0.5f;
 
 
     distance -=
@@ -141,11 +194,14 @@ void Camera::updatePosition()
     const float cosPitch =
         std::cos(pitch);
 
+
     const float sinPitch =
         std::sin(pitch);
 
+
     const float cosYaw =
         std::cos(yaw);
+
 
     const float sinYaw =
         std::sin(yaw);
@@ -180,7 +236,9 @@ void Camera::setTarget(
     const glm::vec3& target
 )
 {
-    this->target = target;
+    this->target =
+        target;
+
 
     updatePosition();
 }
@@ -207,36 +265,54 @@ void Camera::setDistance(
 
 
 // ============================================================
-// PROJECTION
+// FOV
 // ============================================================
 
-void Camera::setFOV(float fov)
+void Camera::setFOV(
+    float fov
+)
 {
-    this->fov = fov;
+    this->fov =
+        fov;
 }
 
+
+// ============================================================
+// NEAR PLANE
+// ============================================================
 
 void Camera::setNearPlane(
     float nearPlane
 )
 {
-    this->nearPlane = nearPlane;
+    this->nearPlane =
+        nearPlane;
 }
 
+
+// ============================================================
+// FAR PLANE
+// ============================================================
 
 void Camera::setFarPlane(
     float farPlane
 )
 {
-    this->farPlane = farPlane;
+    this->farPlane =
+        farPlane;
 }
 
+
+// ============================================================
+// ASPECT RATIO
+// ============================================================
 
 void Camera::setAspectRatio(
     float aspectRatio
 )
 {
-    this->aspectRatio = aspectRatio;
+    this->aspectRatio =
+        aspectRatio;
 }
 
 
@@ -249,7 +325,11 @@ glm::mat4 Camera::getViewMatrix() const
     return glm::lookAt(
         position,
         target,
-        glm::vec3(0.0f, 1.0f, 0.0f)
+        glm::vec3(
+            0.0f,
+            1.0f,
+            0.0f
+        )
     );
 }
 
@@ -270,7 +350,7 @@ glm::mat4 Camera::getProjectionMatrix() const
 
 
 // ============================================================
-// GETTERS
+// POSITION
 // ============================================================
 
 const glm::vec3& Camera::getPosition() const
@@ -279,11 +359,19 @@ const glm::vec3& Camera::getPosition() const
 }
 
 
+// ============================================================
+// TARGET
+// ============================================================
+
 const glm::vec3& Camera::getTarget() const
 {
     return target;
 }
 
+
+// ============================================================
+// DISTANCE
+// ============================================================
 
 float Camera::getDistance() const
 {
@@ -291,11 +379,19 @@ float Camera::getDistance() const
 }
 
 
+// ============================================================
+// FOV
+// ============================================================
+
 float Camera::getFOV() const
 {
     return fov;
 }
 
+
+// ============================================================
+// NEAR PLANE
+// ============================================================
 
 float Camera::getNearPlane() const
 {
@@ -303,11 +399,19 @@ float Camera::getNearPlane() const
 }
 
 
+// ============================================================
+// FAR PLANE
+// ============================================================
+
 float Camera::getFarPlane() const
 {
     return farPlane;
 }
 
+
+// ============================================================
+// ASPECT RATIO
+// ============================================================
 
 float Camera::getAspectRatio() const
 {

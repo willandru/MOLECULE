@@ -20,8 +20,13 @@ public:
     // CAMERA MOVEMENT
     // ========================================================
 
-    void moveForward(float amount);
-    void moveRight(float amount);
+    void moveForward(
+        float amount
+    );
+
+    void moveRight(
+        float amount
+    );
 
 
     // ========================================================
@@ -33,12 +38,19 @@ public:
         float deltaY
     );
 
+    void setOrientation(
+        float yaw,
+        float pitch
+    );
+
 
     // ========================================================
     // CAMERA ZOOM
     // ========================================================
 
-    void zoom(float delta);
+    void zoom(
+        float delta
+    );
 
 
     // ========================================================
@@ -58,9 +70,17 @@ public:
     // PROJECTION
     // ========================================================
 
-    void setFOV(float fov);
-    void setNearPlane(float nearPlane);
-    void setFarPlane(float farPlane);
+    void setFOV(
+        float fov
+    );
+
+    void setNearPlane(
+        float nearPlane
+    );
+
+    void setFarPlane(
+        float farPlane
+    );
 
     void setAspectRatio(
         float aspectRatio
@@ -72,6 +92,7 @@ public:
     // ========================================================
 
     glm::mat4 getViewMatrix() const;
+
     glm::mat4 getProjectionMatrix() const;
 
 
@@ -80,12 +101,17 @@ public:
     // ========================================================
 
     const glm::vec3& getPosition() const;
+
     const glm::vec3& getTarget() const;
 
     float getDistance() const;
+
     float getFOV() const;
+
     float getNearPlane() const;
+
     float getFarPlane() const;
+
     float getAspectRatio() const;
 
 
@@ -96,16 +122,34 @@ private:
 
 private:
 
+    // ========================================================
+    // TRANSFORM
+    // ========================================================
+
     glm::vec3 position;
+
     glm::vec3 target;
+
+
+    // ========================================================
+    // ORBIT
+    // ========================================================
 
     float distance;
 
     float yaw;
+
     float pitch;
 
+
+    // ========================================================
+    // PROJECTION
+    // ========================================================
+
     float fov;
+
     float nearPlane;
+
     float farPlane;
 
     float aspectRatio;

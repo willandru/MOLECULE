@@ -8,9 +8,9 @@
 #include "GridRenderer.h"
 
 #include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 
 int main()
@@ -27,6 +27,10 @@ int main()
     );
 
 
+    // ========================================================
+    // CAMERA
+    // ========================================================
+
     Camera camera(
         glm::vec3(0.0f),
         10.0f
@@ -38,6 +42,16 @@ int main()
     );
 
 
+    camera.setOrientation(
+        0.0f,
+        glm::radians(-70.0f)
+    );
+
+
+    // ========================================================
+    // INPUT
+    // ========================================================
+
     InputKeyboard keyboard(
         window.getHandle()
     );
@@ -47,6 +61,10 @@ int main()
         window.getHandle()
     );
 
+
+    // ========================================================
+    // TIME
+    // ========================================================
 
     Timer1 timer;
 
@@ -92,16 +110,14 @@ int main()
 
 
         // ----------------------------------------------------
-        // INPUT / EVENTS
+        // EVENTS
         // ----------------------------------------------------
 
         window.pollEvents();
 
-        mouse.update();
-
 
         // ----------------------------------------------------
-        // EXIT
+        // KEYBOARD
         // ----------------------------------------------------
 
         if (keyboard.shouldClose())
@@ -110,53 +126,21 @@ int main()
         }
 
 
-        // ----------------------------------------------------
-        // CAMERA SPEED
-        // ----------------------------------------------------
-
-        const float cameraSpeed =
-            5.0f *
-            timer.getDeltaTime();
+        keyboard.update(
+            camera,
+            timer.getDeltaTime()
+        );
 
 
         // ----------------------------------------------------
-        // WASD
+        // MOUSE
         // ----------------------------------------------------
 
-        if (keyboard.isKeyPressed(GLFW_KEY_W))
-        {
-            camera.moveForward(
-                cameraSpeed
-            );
-        }
-
-
-        if (keyboard.isKeyPressed(GLFW_KEY_S))
-        {
-            camera.moveForward(
-                -cameraSpeed
-            );
-        }
-
-
-        if (keyboard.isKeyPressed(GLFW_KEY_A))
-        {
-            camera.moveRight(
-                -cameraSpeed
-            );
-        }
-
-
-        if (keyboard.isKeyPressed(GLFW_KEY_D))
-        {
-            camera.moveRight(
-                cameraSpeed
-            );
-        }
+        mouse.update();
 
 
         // ----------------------------------------------------
-        // MIDDLE MOUSE ORBIT
+        // CAMERA ORBIT
         // ----------------------------------------------------
 
         if (mouse.isMiddleButtonPressed())
@@ -172,11 +156,12 @@ int main()
 
 
         // ----------------------------------------------------
-        // MOUSE WHEEL ZOOM
+        // CAMERA ZOOM
         // ----------------------------------------------------
 
         const float scroll =
             mouse.getScrollDelta();
+
 
         if (scroll != 0.0f)
         {
@@ -184,6 +169,7 @@ int main()
                 scroll
             );
         }
+
 
         mouse.clearScrollDelta();
 

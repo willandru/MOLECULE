@@ -1,15 +1,86 @@
 #include "InputKeyboard.h"
 
+#include "Camera.h"
+
 #include <GLFW/glfw3.h>
 
 
-InputKeyboard::InputKeyboard(void* window)
+// ============================================================
+// CONSTRUCTOR
+// ============================================================
+
+InputKeyboard::InputKeyboard(
+    void* window
+)
     : window(window)
 {
 }
 
 
-bool InputKeyboard::isKeyPressed(int key) const
+// ============================================================
+// UPDATE
+// ============================================================
+
+void InputKeyboard::update(
+    Camera& camera,
+    float deltaTime
+)
+{
+    constexpr float cameraSpeed = 5.0f;
+
+    const float movement =
+        cameraSpeed *
+        deltaTime;
+
+
+    // --------------------------------------------------------
+    // FORWARD / BACKWARD
+    // --------------------------------------------------------
+
+    if (isKeyPressed(GLFW_KEY_W))
+    {
+        camera.moveForward(
+            movement
+        );
+    }
+
+
+    if (isKeyPressed(GLFW_KEY_S))
+    {
+        camera.moveForward(
+            -movement
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // LEFT / RIGHT
+    // --------------------------------------------------------
+
+    if (isKeyPressed(GLFW_KEY_A))
+    {
+        camera.moveRight(
+            -movement
+        );
+    }
+
+
+    if (isKeyPressed(GLFW_KEY_D))
+    {
+        camera.moveRight(
+            movement
+        );
+    }
+}
+
+
+// ============================================================
+// KEY PRESSED
+// ============================================================
+
+bool InputKeyboard::isKeyPressed(
+    int key
+) const
 {
     return glfwGetKey(
         static_cast<GLFWwindow*>(window),
@@ -18,7 +89,13 @@ bool InputKeyboard::isKeyPressed(int key) const
 }
 
 
-bool InputKeyboard::isKeyReleased(int key) const
+// ============================================================
+// KEY RELEASED
+// ============================================================
+
+bool InputKeyboard::isKeyReleased(
+    int key
+) const
 {
     return glfwGetKey(
         static_cast<GLFWwindow*>(window),
@@ -27,7 +104,13 @@ bool InputKeyboard::isKeyReleased(int key) const
 }
 
 
+// ============================================================
+// SHOULD CLOSE
+// ============================================================
+
 bool InputKeyboard::shouldClose() const
 {
-    return isKeyPressed(GLFW_KEY_ESCAPE);
+    return isKeyPressed(
+        GLFW_KEY_ESCAPE
+    );
 }
