@@ -7,6 +7,7 @@
 
 #include "DFTGrid.h"
 #include "DFTDensity.h"
+#include "MultigridSolver.h"
 
 class DFTPotential
 {
@@ -69,7 +70,9 @@ public:
     ) const;
 
     const std::vector<double>& getExternalPotential() const;
+
     const std::vector<double>& getHartreePotential() const;
+
     const std::vector<double>& getExchangePotential() const;
 
     // ------------------------------------------------------------
@@ -130,116 +133,18 @@ private:
     const DFTGrid* grid;
 
     std::vector<double> externalPotential;
+
     std::vector<double> hartreePotential;
+
     std::vector<double> exchangePotential;
 
     double softening;
 
     // ------------------------------------------------------------
-    // Diagnóstico de Poisson
+    // Solver de Poisson
     // ------------------------------------------------------------
 
-    double poissonResidual;
-
-    int poissonCycles;
-
-    bool poissonConverged;
-
-    // ------------------------------------------------------------
-    // Poisson / Multigrid
-    // ------------------------------------------------------------
-
-    void solvePoisson(
-        const DFTDensity& density,
-        std::vector<double>& potential,
-        int maxCycles
-    );
-
-    void vCycle(
-        std::vector<double>& solution,
-        const std::vector<double>& rhs,
-        int nx,
-        int ny,
-        int nz,
-        double hx,
-        double hy,
-        double hz
-    ) const;
-
-    void smooth(
-        std::vector<double>& solution,
-        const std::vector<double>& rhs,
-        int nx,
-        int ny,
-        int nz,
-        double hx,
-        double hy,
-        double hz,
-        int iterations
-    ) const;
-
-    std::vector<double> calculateResidual(
-        const std::vector<double>& solution,
-        const std::vector<double>& rhs,
-        int nx,
-        int ny,
-        int nz,
-        double hx,
-        double hy,
-        double hz
-    ) const;
-
-    double calculateResidualNorm(
-        const std::vector<double>& residual,
-        int nx,
-        int ny,
-        int nz,
-        double hx,
-        double hy,
-        double hz
-    ) const;
-
-    std::vector<double> restrictResidual(
-        const std::vector<double>& fineResidual,
-        int fineNx,
-        int fineNy,
-        int fineNz,
-        int coarseNx,
-        int coarseNy,
-        int coarseNz
-    ) const;
-
-    void prolongateAndAdd(
-        const std::vector<double>& coarseCorrection,
-        int coarseNx,
-        int coarseNy,
-        int coarseNz,
-        std::vector<double>& fineSolution,
-        int fineNx,
-        int fineNy,
-        int fineNz
-    ) const;
-
-    double sampleTrilinear(
-        const std::vector<double>& field,
-        int nx,
-        int ny,
-        int nz,
-        double x,
-        double y,
-        double z
-    ) const;
-
-    double calculateLaplacian(
-        const std::vector<double>& potential,
-        int x,
-        int y,
-        int z
-    ) const;
-
-    double calculateDensityCharge(
-        const DFTDensity& density
-    ) const;
+    MultigridSolver multigridSolver;
 
     // ------------------------------------------------------------
     // Condiciones de frontera
@@ -248,5 +153,24 @@ private:
     void applyBoundaryConditions(
         std::vector<double>& potential,
         const DFTDensity& density
+    ) const;
+
+    // ------------------------------------------------------------
+    // Carga electrónica
+    // ------------------------------------------------------------
+
+    double calculateDensityCharge(
+        const DFTDensity& density
+    ) const;
+
+    // ------------------------------------------------------------
+    // Laplaciano
+    // ------------------------------------------------------------
+
+    double calculateLaplacian(
+        const std::vector<double>& potential,
+        int x,
+        int y,
+        int z
     ) const;
 };
