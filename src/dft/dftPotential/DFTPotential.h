@@ -7,7 +7,12 @@
 
 #include "DFTGrid.h"
 #include "DFTDensity.h"
-#include "MultigridSolver.h"
+
+#include "ExternalPotential.h"
+#include "HartreePotential.h"
+#include "ExchangePotential.h"
+#include "PotentialEnergy.h"
+#include "NuclearForces.h"
 
 class DFTPotential
 {
@@ -132,45 +137,13 @@ private:
 
     const DFTGrid* grid;
 
-    std::vector<double> externalPotential;
+    ExternalPotential externalPotential;
 
-    std::vector<double> hartreePotential;
+    HartreePotential hartreePotential;
 
-    std::vector<double> exchangePotential;
+    ExchangePotential exchangePotential;
 
-    double softening;
+    PotentialEnergy potentialEnergy;
 
-    // ------------------------------------------------------------
-    // Solver de Poisson
-    // ------------------------------------------------------------
-
-    MultigridSolver multigridSolver;
-
-    // ------------------------------------------------------------
-    // Condiciones de frontera
-    // ------------------------------------------------------------
-
-    void applyBoundaryConditions(
-        std::vector<double>& potential,
-        const DFTDensity& density
-    ) const;
-
-    // ------------------------------------------------------------
-    // Carga electrónica
-    // ------------------------------------------------------------
-
-    double calculateDensityCharge(
-        const DFTDensity& density
-    ) const;
-
-    // ------------------------------------------------------------
-    // Laplaciano
-    // ------------------------------------------------------------
-
-    double calculateLaplacian(
-        const std::vector<double>& potential,
-        int x,
-        int y,
-        int z
-    ) const;
+    NuclearForces nuclearForces;
 };
