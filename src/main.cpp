@@ -1,248 +1,357 @@
-#include "Window.h"
-#include "Camera.h"
-#include "InputKeyboard.h"
-#include "InputMouse.h"
-#include "Timer1.h"
-
-#include "Grid.h"
-#include "GridRenderer.h"
-
-#include "HydrogenAtom.h"
-#include "HydrogenRenderer.h"
-
-#include <glad/glad.h>
+#include "DFT.h"
+#include "DFTGrid.h"
 
 #include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+
+
+// ================================================================
+// UTILIDADES
+// ================================================================
+
+void printEnergyReport(
+    const std::string& name,
+    const DFT& dft
+)
+{
+    std::cout << "\n";
+    std::cout
+        << "============================================================\n";
+
+    std::cout
+        << name
+        << "\n";
+
+    std::cout
+        << "============================================================\n";
+
+    std::cout
+        << "SCF converged: "
+        << (dft.hasConverged() ? "YES" : "NO")
+        << "\n";
+
+    std::cout
+        << "Electrons: "
+        << dft.getKohnSham().getElectronCount()
+        << "\n";
+
+    std::cout
+        << "Orbitals: "
+        << dft.getKohnSham().getOrbitalCount()
+        << "\n";
+
+    std::cout
+        << std::setprecision(12);
+
+    std::cout
+        << "E electron-nucleus : "
+        << dft.getElectronNuclearEnergy()
+        << " Ha\n";
+
+    std::cout
+        << "E Hartree          : "
+        << dft.getHartreeEnergy()
+        << " Ha\n";
+
+    std::cout
+        << "E exchange         : "
+        << dft.getExchangeEnergy()
+        << " Ha\n";
+
+    std::cout
+        << "E nucleus-nucleus  : "
+        << dft.getNuclearRepulsionEnergy()
+        << " Ha\n";
+
+    std::cout
+        << "E TOTAL            : "
+        << dft.calculateTotalEnergy()
+        << " Ha\n";
+
+    std::cout
+        << "\nKohn-Sham orbitals:\n";
+
+    for (
+        int i = 0;
+        i < dft.getKohnSham().getOrbitalCount();
+        ++i
+    )
+    {
+        std::cout
+            << "  Orbital "
+            << i
+            << " | occupation = "
+            << dft.getKohnSham().getOccupation(i)
+            << " | eigenvalue = "
+            << dft.getKohnSham().getEigenvalue(i)
+            << " Ha"
+            << " | residual = "
+            << dft.getKohnSham().getResidual(i)
+            << "\n";
+    }
+}
+
+
+// ================================================================
+// ATOM TEST
+// ================================================================
+
+void runAtomTest(
+    const std::string& name,
+    int atomicNumber,
+    const DFTGrid& grid
+)
+{
+    std::cout << "\n\n";
+
+    std::cout
+        << "############################################################\n";
+
+    std::cout
+        << "# "
+        << name
+        << "\n";
+
+    std::cout
+        << "############################################################\n";
+
+    std::cout
+        << "["
+        << name
+        << "] Creando objeto DFT..."
+        << std::endl;
+
+    DFT atom(grid);
+
+    std::cout
+        << "["
+        << name
+        << "] Objeto DFT creado."
+        << std::endl;
+
+
+    // ------------------------------------------------------------
+    // NÚCLEO
+    // ------------------------------------------------------------
+
+    std::vector<int> charges =
+    {
+        atomicNumber
+    };
+
+    std::vector<glm::dvec3> positions =
+    {
+        glm::dvec3(0.0)
+    };
+
+    std::cout
+        << "["
+        << name
+        << "] Antes de setMolecule()"
+        << std::endl;
+
+    atom.setMolecule(
+        charges,
+        positions
+    );
+
+    std::cout
+        << "["
+        << name
+        << "] Despues de setMolecule()"
+        << std::endl;
+
+
+    // ------------------------------------------------------------
+    // POTENCIAL
+    // ------------------------------------------------------------
+
+    atom.setPotentialSoftening(
+        0.15
+    );
+
+    std::cout
+        << "["
+        << name
+        << "] Softening configurado."
+        << std::endl;
+
+
+    // ------------------------------------------------------------
+    // SCF
+    // ------------------------------------------------------------
+
+    std::cout
+        << "["
+        << name
+        << "] Antes de solveSCF()"
+        << std::endl;
+
+    const bool converged =
+        atom.solveSCF(
+            60,
+            200,
+            0.001,
+            0.20,
+            1.0e-5
+        );
+
+    std::cout
+        << "["
+        << name
+        << "] Despues de solveSCF(): "
+        << (
+            converged
+            ? "CONVERGED"
+            : "NO CONVERGED"
+        )
+        << std::endl;
+
+
+    // ------------------------------------------------------------
+    // RESULTADOS
+    // ------------------------------------------------------------
+
+    printEnergyReport(
+        name,
+        atom
+    );
+}
+
+
+// ================================================================
+// MAIN
+// ================================================================
 
 int main()
 {
-    Window window(
-        1280,
-        720,
-        "HYDROGEN DFT",
-        true
+    std::cout
+        << "\n";
+
+    std::cout
+        << "============================================================\n";
+
+    std::cout
+        << "DFT ATOMIC SIMULATION\n";
+
+    std::cout
+        << "============================================================\n";
+
+
+    // ============================================================
+    // DFT GRID
+    // ============================================================
+
+    /*
+        Unidades atómicas:
+
+            distancia = Bohr
+            energía   = Hartree
+
+        Malla espacial:
+
+            32 x 32 x 32 puntos
+            spacing = 0.5 Bohr
+            box = 16 Bohr
+    */
+
+    const int NX = 32;
+    const int NY = 32;
+    const int NZ = 32;
+
+    const double DFT_SPACING = 0.5;
+
+    const double DFT_BOX =
+        DFT_SPACING *
+        static_cast<double>(NX);
+
+    const glm::dvec3 DFT_ORIGIN(
+        -0.5 * DFT_BOX,
+        -0.5 * DFT_BOX,
+        -0.5 * DFT_BOX
+    );
+
+    DFTGrid dftGrid(
+        NX,
+        NY,
+        NZ,
+        DFT_SPACING,
+        DFT_ORIGIN
     );
 
 
-    // ========================================================
-    // CAMERA
-    // ========================================================
+    std::cout
+        << "Grid: "
+        << NX
+        << " x "
+        << NY
+        << " x "
+        << NZ
+        << "\n";
 
-    Camera camera(
-        glm::vec3(0.0f),
-        70.0f
-    );
+    std::cout
+        << "Spacing: "
+        << DFT_SPACING
+        << " Bohr\n";
 
-    camera.setAspectRatio(
-        window.getAspectRatio()
-    );
-
-    camera.setOrientation(
-        0.0f,
-        glm::radians(-70.0f)
-    );
-
-
-    // ========================================================
-    // INPUT
-    // ========================================================
-
-    InputKeyboard keyboard(
-        window.getHandle()
-    );
-
-    InputMouse mouse(
-        window.getHandle()
-    );
+    std::cout
+        << "Box size: "
+        << DFT_BOX
+        << " Bohr\n";
 
 
-    // ========================================================
-    // TIMER
-    // ========================================================
+    // ============================================================
+    // H
+    // ============================================================
 
-    Timer1 timer;
-
-
-    // ========================================================
-    // GRID
-    // ========================================================
-
-    Grid grid;
-
-    GridRenderer gridRenderer;
-
-    gridRenderer.initialize(
-        grid
+    runAtomTest(
+        "H",
+        1,
+        dftGrid
     );
 
 
-    // ========================================================
-    // HYDROGEN
-    // ========================================================
+    // ============================================================
+    // He
+    // ============================================================
 
-    HydrogenAtom hydrogen(
-        glm::vec3(0.0f)
-    );
-
-    hydrogen.calculateDFT();
-
-
-    // ========================================================
-    // HYDROGEN RENDERER
-    // ========================================================
-
-    HydrogenRenderer hydrogenRenderer;
-
-    if (!hydrogenRenderer.initialize())
-    {
-        return -1;
-    }
-
-    hydrogenRenderer.setPosition(
-        hydrogen.getPosition()
-    );
-
-    hydrogenRenderer.setScale(
-        1.0f
-    );
-
-    hydrogenRenderer.setIsovalue(
-        0.02
-    );
-
-    hydrogenRenderer.buildGeometry(
-        hydrogen
+    runAtomTest(
+        "He",
+        2,
+        dftGrid
     );
 
 
-    // ========================================================
-    // DFT INFORMATION
-    // ========================================================
+    // ============================================================
+    // Li
+    // ============================================================
 
-    const auto& dft =
-        hydrogen.getDFTResult();
-
-    if (!hydrogen.isDFTConverged())
-    {
-        return -1;
-    }
+    runAtomTest(
+        "Li",
+        3,
+        dftGrid
+    );
 
 
-    // ========================================================
-    // OPENGL
-    // ========================================================
+    // ============================================================
+    // FIN
+    // ============================================================
 
-    glEnable(GL_DEPTH_TEST);
+    std::cout
+        << "\n";
 
+    std::cout
+        << "============================================================\n";
 
-    // ========================================================
-    // MAIN LOOP
-    // ========================================================
+    std::cout
+        << "DFT ATOMIC TESTS FINISHED\n";
 
-    while (!window.shouldClose())
-    {
-        timer.update();
-
-        window.pollEvents();
-
-
-        // ----------------------------------------------------
-        // CLOSE
-        // ----------------------------------------------------
-
-        if (keyboard.shouldClose())
-        {
-            break;
-        }
-
-
-        // ----------------------------------------------------
-        // KEYBOARD
-        // ----------------------------------------------------
-
-        keyboard.update(
-            camera,
-            timer.getDeltaTime()
-        );
-
-
-        // ----------------------------------------------------
-        // MOUSE
-        // ----------------------------------------------------
-
-        mouse.update();
-
-
-        if (mouse.isMiddleButtonPressed())
-        {
-            const glm::vec2& delta =
-                mouse.getDelta();
-
-            camera.orbit(
-                delta.x,
-                delta.y
-            );
-        }
-
-
-        // ----------------------------------------------------
-        // ZOOM
-        // ----------------------------------------------------
-
-        const float scroll =
-            mouse.getScrollDelta();
-
-
-        if (scroll != 0.0f)
-        {
-            camera.zoom(
-                scroll
-            );
-        }
-
-
-        mouse.clearScrollDelta();
-
-
-        // ====================================================
-        // CLEAR
-        // ====================================================
-
-        glClear(
-            GL_COLOR_BUFFER_BIT |
-            GL_DEPTH_BUFFER_BIT
-        );
-
-
-        // ====================================================
-        // GRID
-        // ====================================================
-
-        gridRenderer.render(
-            camera.getViewMatrix(),
-            camera.getProjectionMatrix()
-        );
-
-
-        // ====================================================
-        // HYDROGEN
-        // ====================================================
-
-        hydrogenRenderer.render(
-            camera.getViewMatrix(),
-            camera.getProjectionMatrix()
-        );
-
-
-        // ====================================================
-        // PRESENT
-        // ====================================================
-
-        window.swapBuffers();
-    }
+    std::cout
+        << "============================================================\n";
 
 
     return 0;

@@ -740,6 +740,9 @@ DFTHydrogen::getResult() const
 // ============================================================
 // MALLA RADIAL
 // ============================================================
+// ============================================================
+// MALLA RADIAL
+// ============================================================
 
 void DFTHydrogen::buildRadialGrid()
 {
@@ -747,7 +750,9 @@ void DFTHydrogen::buildRadialGrid()
         parameters.gridPoints;
 
 
-    result.r.resize(N);
+    result.r.resize(
+        N
+    );
 
 
     /*
@@ -758,12 +763,21 @@ void DFTHydrogen::buildRadialGrid()
         y:
 
             rho = u² / (4 pi r²)
+
+        Por eso la malla comienza en:
+
+            r = dr
+
+        y termina exactamente en:
+
+            r = rMax
     */
+
 
     const double dr =
         parameters.rMax /
         static_cast<double>(
-            N - 1
+            N
         );
 
 
@@ -778,7 +792,6 @@ void DFTHydrogen::buildRadialGrid()
             dr;
     }
 }
-
 
 // ============================================================
 // ORBITAL INICIAL
