@@ -15,17 +15,16 @@ InputMouse::InputMouse(
       previousPosition(0.0f),
       delta(0.0f),
       scrollDelta(0.0f),
-      middleButtonPressed(false)
+      middleButtonPressed(false),
+      previousMiddleButtonPressed(false)
 {
     GLFWwindow* glfwWindow =
         static_cast<GLFWwindow*>(window);
-
 
     glfwSetWindowUserPointer(
         glfwWindow,
         this
     );
-
 
     glfwSetScrollCallback(
         glfwWindow,
@@ -51,32 +50,17 @@ void InputMouse::update()
     double mouseX;
     double mouseY;
 
-
     glfwGetCursorPos(
         glfwWindow,
         &mouseX,
         &mouseY
     );
 
-
     position =
         glm::vec2(
             static_cast<float>(mouseX),
             static_cast<float>(mouseY)
         );
-
-
-    // --------------------------------------------------------
-    // DELTA
-    // --------------------------------------------------------
-
-    delta =
-        position -
-        previousPosition;
-
-
-    previousPosition =
-        position;
 
 
     // --------------------------------------------------------
@@ -88,6 +72,34 @@ void InputMouse::update()
             glfwWindow,
             GLFW_MOUSE_BUTTON_MIDDLE
         ) == GLFW_PRESS;
+
+
+    // --------------------------------------------------------
+    // MOUSE DELTA
+    // --------------------------------------------------------
+
+    if (
+        middleButtonPressed &&
+        !previousMiddleButtonPressed
+    )
+    {
+        // Evita un salto al comenzar el arrastre.
+        delta =
+            glm::vec2(0.0f);
+    }
+    else
+    {
+        delta =
+            position -
+            previousPosition;
+    }
+
+
+    previousPosition =
+        position;
+
+    previousMiddleButtonPressed =
+        middleButtonPressed;
 }
 
 
@@ -105,7 +117,6 @@ void InputMouse::scrollCallback(
         static_cast<InputMouse*>(
             glfwGetWindowUserPointer(window)
         );
-
 
     if (mouse != nullptr)
     {

@@ -1,7 +1,7 @@
 #include "Camera.h"
 
-#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -22,7 +22,7 @@ Camera::Camera(
       target(target),
       distance(distance),
       yaw(0.0f),
-      pitch(0.0f),
+      pitch(glm::radians(18.0f)),
       fov(fov),
       nearPlane(nearPlane),
       farPlane(farPlane),
@@ -41,14 +41,22 @@ void Camera::moveForward(
 )
 {
     glm::vec3 direction =
-        glm::normalize(
-            target - position
-        );
+        target - position;
 
+    direction.y = 0.0f;
+
+    const float length =
+        glm::length(direction);
+
+    if (length < 1.0e-6f)
+    {
+        return;
+    }
+
+    direction /= length;
 
     position +=
         direction * amount;
-
 
     target +=
         direction * amount;
@@ -64,30 +72,58 @@ void Camera::moveRight(
 )
 {
     glm::vec3 direction =
-        glm::normalize(
-            target - position
-        );
+        target - position;
 
+    direction.y = 0.0f;
+
+    const float length =
+        glm::length(direction);
+
+    if (length < 1.0e-6f)
+    {
+        return;
+    }
+
+    direction /= length;
 
     glm::vec3 right =
-        glm::normalize(
-            glm::cross(
-                direction,
-                glm::vec3(
-                    0.0f,
-                    1.0f,
-                    0.0f
-                )
+        glm::cross(
+            direction,
+            glm::vec3(
+                0.0f,
+                1.0f,
+                0.0f
             )
         );
 
+    const float rightLength =
+        glm::length(right);
+
+    if (rightLength < 1.0e-6f)
+    {
+        return;
+    }
+
+    right /= rightLength;
 
     position +=
         right * amount;
 
-
     target +=
         right * amount;
+}
+
+
+// ============================================================
+// MOVE VERTICAL
+// ============================================================
+
+void Camera::moveVertical(
+    float amount
+)
+{
+    position.y += amount;
+    target.y += amount;
 }
 
 
@@ -103,18 +139,14 @@ void Camera::orbit(
     constexpr float sensitivity =
         0.005f;
 
-
     yaw -=
         deltaX * sensitivity;
-
 
     pitch -=
         deltaY * sensitivity;
 
-
     constexpr float limit =
-        glm::half_pi<float>() - 0.01f;
-
+        glm::half_pi<float>() - 0.05f;
 
     pitch =
         std::clamp(
@@ -122,7 +154,6 @@ void Camera::orbit(
             -limit,
             limit
         );
-
 
     updatePosition();
 }
@@ -140,10 +171,8 @@ void Camera::setOrientation(
     this->yaw =
         yaw;
 
-
     constexpr float limit =
-        glm::half_pi<float>() - 0.01f;
-
+        glm::half_pi<float>() - 0.05f;
 
     this->pitch =
         std::clamp(
@@ -151,7 +180,6 @@ void Camera::setOrientation(
             -limit,
             limit
         );
-
 
     updatePosition();
 }
@@ -166,20 +194,17 @@ void Camera::zoom(
 )
 {
     constexpr float zoomSpeed =
-        0.5f;
-
+        1.0f;
 
     distance -=
         delta * zoomSpeed;
 
-
     distance =
         std::clamp(
             distance,
-            0.5f,
+            1.0f,
             1000.0f
         );
-
 
     updatePosition();
 }
@@ -194,18 +219,14 @@ void Camera::updatePosition()
     const float cosPitch =
         std::cos(pitch);
 
-
     const float sinPitch =
         std::sin(pitch);
-
 
     const float cosYaw =
         std::cos(yaw);
 
-
     const float sinYaw =
         std::sin(yaw);
-
 
     position.x =
         target.x +
@@ -213,12 +234,10 @@ void Camera::updatePosition()
         cosPitch *
         sinYaw;
 
-
     position.y =
-        target.y +
+        target.y -
         distance *
         sinPitch;
-
 
     position.z =
         target.z +
@@ -239,7 +258,6 @@ void Camera::setTarget(
     this->target =
         target;
 
-
     updatePosition();
 }
 
@@ -255,10 +273,9 @@ void Camera::setDistance(
     this->distance =
         std::clamp(
             distance,
-            0.5f,
+            1.0f,
             1000.0f
         );
-
 
     updatePosition();
 }

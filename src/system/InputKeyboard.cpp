@@ -26,7 +26,8 @@ void InputKeyboard::update(
     float deltaTime
 )
 {
-    constexpr float cameraSpeed = 5.0f;
+    constexpr float cameraSpeed =
+        5.0f;
 
     const float movement =
         cameraSpeed *
@@ -43,7 +44,6 @@ void InputKeyboard::update(
             movement
         );
     }
-
 
     if (isKeyPressed(GLFW_KEY_S))
     {
@@ -64,10 +64,28 @@ void InputKeyboard::update(
         );
     }
 
-
     if (isKeyPressed(GLFW_KEY_D))
     {
         camera.moveRight(
+            movement
+        );
+    }
+
+
+    // --------------------------------------------------------
+    // VERTICAL
+    // --------------------------------------------------------
+
+    if (isKeyPressed(GLFW_KEY_Q))
+    {
+        camera.moveVertical(
+            -movement
+        );
+    }
+
+    if (isKeyPressed(GLFW_KEY_E))
+    {
+        camera.moveVertical(
             movement
         );
     }
