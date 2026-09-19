@@ -2,8 +2,8 @@
 
 #include <glm/glm.hpp>
 
-#include "../dft/AtomicDFT.h"
-#include "../dft/RadialGrid.h"
+#include "AtomicDFT.h"
+#include "RadialGrid.h"
 
 class Shader;
 
