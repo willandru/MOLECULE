@@ -31,11 +31,11 @@ constexpr int WINDOW_HEIGHT = 720;
 
 constexpr double ISOVALUE = 0.04;
 
-constexpr float H2_POSITION_X = -5.0f;
-constexpr float H2_POSITION_Y = 0.0f;
+constexpr float H2_PSI_POSITION_X = -4.0f;
+constexpr float H2_PSI_POSITION_Y = 0.0f;
 
-constexpr float H2O_POSITION_X = 5.0f;
-constexpr float H2O_POSITION_Y = 0.0f;
+constexpr float H2_DENSITY_POSITION_X = 4.0f;
+constexpr float H2_DENSITY_POSITION_Y = 0.0f;
 
 constexpr float POSITIVE_RED = 0.15f;
 constexpr float POSITIVE_GREEN = 0.45f;
@@ -44,6 +44,10 @@ constexpr float POSITIVE_BLUE = 1.0f;
 constexpr float NEGATIVE_RED = 1.0f;
 constexpr float NEGATIVE_GREEN = 0.20f;
 constexpr float NEGATIVE_BLUE = 0.20f;
+
+constexpr float DENSITY_RED = 0.20f;
+constexpr float DENSITY_GREEN = 0.75f;
+constexpr float DENSITY_BLUE = 0.30f;
 
 constexpr float NUCLEUS_RED = 0.90f;
 constexpr float NUCLEUS_GREEN = 0.90f;
@@ -68,100 +72,44 @@ double maximumAbsoluteValue(
 }
 
 
-bool sameSpatialOrbital(
-    const MolecularOrbital& first,
-    const MolecularOrbital& second
+std::vector<double> squareWavefunction(
+    const std::vector<double>& psi
 )
 {
-    if (first.psi.size() != second.psi.size())
+    std::vector<double> density(
+        psi.size()
+    );
+
+    for (std::size_t i = 0; i < psi.size(); ++i)
     {
-        return false;
+        density[i] =
+            psi[i] * psi[i];
     }
 
-    if (
-        std::abs(
-            first.eigenvalue -
-            second.eigenvalue
-        ) > 1.0e-10
-    )
-    {
-        return false;
-    }
-
-    for (std::size_t i = 0; i < first.psi.size(); ++i)
-    {
-        if (
-            std::abs(
-                first.psi[i] -
-                second.psi[i]
-            ) > 1.0e-10
-        )
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-
-std::vector<MolecularOrbital> extractUniqueSpatialOrbitals(
-    const std::vector<MolecularOrbital>& orbitals
-)
-{
-    std::vector<MolecularOrbital> uniqueOrbitals;
-
-    for (const MolecularOrbital& orbital : orbitals)
-    {
-        bool alreadyPresent = false;
-
-        for (
-            const MolecularOrbital& existing :
-            uniqueOrbitals
-        )
-        {
-            if (
-                sameSpatialOrbital(
-                    orbital,
-                    existing
-                )
-            )
-            {
-                alreadyPresent = true;
-                break;
-            }
-        }
-
-        if (!alreadyPresent)
-        {
-            uniqueOrbitals.push_back(
-                orbital
-            );
-        }
-    }
-
-    return uniqueOrbitals;
+    return density;
 }
 
 
 MolecularOrbitalIsosurface::Surface generateSurface(
     const CartesianGrid& grid,
-    const MolecularOrbital& orbital
+    const std::vector<double>& field
 )
 {
     return MolecularOrbitalIsosurface::generate(
         grid,
-        orbital.psi,
+        field,
         ISOVALUE
     );
 }
 
 
 std::unique_ptr<MolecularOrbitalRenderer>
-createOrbitalRenderer(
+createRenderer(
     const MolecularOrbitalIsosurface::Surface& surface,
     float x,
-    float y
+    float y,
+    const glm::vec3& positiveColor,
+    const glm::vec3& negativeColor
 )
 {
     if (surface.empty())
@@ -179,19 +127,11 @@ createOrbitalRenderer(
     );
 
     renderer->setPositiveColor(
-        glm::vec3(
-            POSITIVE_RED,
-            POSITIVE_GREEN,
-            POSITIVE_BLUE
-        )
+        positiveColor
     );
 
     renderer->setNegativeColor(
-        glm::vec3(
-            NEGATIVE_RED,
-            NEGATIVE_GREEN,
-            NEGATIVE_BLUE
-        )
+        negativeColor
     );
 
     renderer->setModelMatrix(
@@ -235,47 +175,12 @@ int main()
             0.0
         );
 
-        CartesianGrid h2Grid(
-            21,
-            21,
-            21,
-            -3.8,
-            4.2,
-            -3.8,
-            4.2,
-            -3.8,
-            4.2
-        );
-
 
         // =====================================================
-        // H2O
+        // CARTESIAN GRID
         // =====================================================
 
-        Molecule h2o;
-
-        h2o.addNucleus(
-            8,
-            0.0,
-            0.0,
-            0.0
-        );
-
-        h2o.addNucleus(
-            1,
-            1.430,
-            0.0,
-            1.108
-        );
-
-        h2o.addNucleus(
-            1,
-            -1.430,
-            0.0,
-            1.108
-        );
-
-        CartesianGrid h2oGrid(
+        CartesianGrid grid(
             21,
             21,
             21,
@@ -294,183 +199,87 @@ int main()
 
         PZ81 functional;
 
-        MolecularResult h2Result =
+        MolecularResult result =
             solveMolecularSelfConsistentField(
-                h2Grid,
+                grid,
                 h2,
                 0,
                 1,
                 functional
             );
 
-        MolecularResult h2oResult =
-            solveMolecularSelfConsistentField(
-                h2oGrid,
-                h2o,
-                0,
-                1,
-                functional
-            );
-
-
-        if (!h2Result.scf.converged)
+        if (!result.scf.converged)
         {
             throw std::runtime_error(
                 "H2 molecular SCF did not converge."
             );
         }
 
-        if (!h2oResult.scf.converged)
+
+        // =====================================================
+        // USE THE FIRST UNIQUE SPATIAL ORBITAL
+        // =====================================================
+
+        if (
+            result.scf.molecularOrbitals.empty()
+        )
         {
             throw std::runtime_error(
-                "H2O molecular SCF did not converge."
+                "H2 produced no molecular orbitals."
             );
         }
 
-
-        // =====================================================
-        // UNIQUE SPATIAL ORBITALS
-        // =====================================================
-
-        const std::vector<MolecularOrbital> h2Orbitals =
-            extractUniqueSpatialOrbitals(
-                h2Result.scf.molecularOrbitals
-            );
-
-        const std::vector<MolecularOrbital> h2oOrbitals =
-            extractUniqueSpatialOrbitals(
-                h2oResult.scf.molecularOrbitals
-            );
-
-
-        // =====================================================
-        // INFORMATION
-        // =====================================================
-
-        std::cout
-            << "\n========================================\n"
-            << "H2 MOLECULAR ORBITALS\n"
-            << "========================================\n";
-
-        std::cout
-            << "Returned orbitals: "
-            << h2Result.scf.molecularOrbitals.size()
-            << '\n';
-
-        std::cout
-            << "Unique spatial orbitals: "
-            << h2Orbitals.size()
-            << '\n';
-
-        for (
-            std::size_t i = 0;
-            i < h2Orbitals.size();
-            ++i
-        )
-        {
-            const MolecularOrbital& orbital =
-                h2Orbitals[i];
-
-            std::cout
-                << "MO "
-                << i
-                << " | eigenvalue = "
-                << orbital.eigenvalue
-                << " | electrons = "
-                << orbital.electrons
-                << " | max|psi| = "
-                << maximumAbsoluteValue(
-                    orbital.psi
-                )
-                << '\n';
-        }
+        const MolecularOrbital& orbital =
+            result.scf.molecularOrbitals.front();
 
 
         std::cout
             << "\n========================================\n"
-            << "H2O MOLECULAR ORBITALS\n"
-            << "========================================\n";
-
-        std::cout
-            << "Returned orbitals: "
-            << h2oResult.scf.molecularOrbitals.size()
+            << "H2 ORBITAL / DENSITY\n"
+            << "========================================\n"
+            << "Eigenvalue = "
+            << orbital.eigenvalue
+            << '\n'
+            << "Max |psi| = "
+            << maximumAbsoluteValue(
+                orbital.psi
+            )
             << '\n';
-
-        std::cout
-            << "Unique spatial orbitals: "
-            << h2oOrbitals.size()
-            << '\n';
-
-        for (
-            std::size_t i = 0;
-            i < h2oOrbitals.size();
-            ++i
-        )
-        {
-            const MolecularOrbital& orbital =
-                h2oOrbitals[i];
-
-            std::cout
-                << "MO "
-                << i
-                << " | eigenvalue = "
-                << orbital.eigenvalue
-                << " | electrons = "
-                << orbital.electrons
-                << " | max|psi| = "
-                << maximumAbsoluteValue(
-                    orbital.psi
-                )
-                << '\n';
-        }
 
 
         // =====================================================
-        // ISOSURFACES
+        // PSI
         // =====================================================
 
-        std::vector<
-            MolecularOrbitalIsosurface::Surface
-        > h2Surfaces;
-
-        h2Surfaces.reserve(
-            h2Orbitals.size()
-        );
-
-        for (
-            const MolecularOrbital& orbital :
-            h2Orbitals
-        )
-        {
-            h2Surfaces.push_back(
-                generateSurface(
-                    h2Grid,
-                    orbital
-                )
+        MolecularOrbitalIsosurface::Surface psiSurface =
+            generateSurface(
+                grid,
+                orbital.psi
             );
-        }
 
 
-        std::vector<
-            MolecularOrbitalIsosurface::Surface
-        > h2oSurfaces;
+        // =====================================================
+        // PSI SQUARED
+        // =====================================================
 
-        h2oSurfaces.reserve(
-            h2oOrbitals.size()
-        );
-
-        for (
-            const MolecularOrbital& orbital :
-            h2oOrbitals
-        )
-        {
-            h2oSurfaces.push_back(
-                generateSurface(
-                    h2oGrid,
-                    orbital
-                )
+        std::vector<double> density =
+            squareWavefunction(
+                orbital.psi
             );
-        }
+
+        MolecularOrbitalIsosurface::Surface densitySurface =
+            generateSurface(
+                grid,
+                density
+            );
+
+
+        std::cout
+            << "Max |psi|^2 = "
+            << maximumAbsoluteValue(
+                density
+            )
+            << '\n';
 
 
         // =====================================================
@@ -480,7 +289,7 @@ int main()
         NavigationViewController navigation(
             WINDOW_WIDTH,
             WINDOW_HEIGHT,
-            "Molecular Orbitals"
+            "H2 - Psi and Psi Squared"
         );
 
 
@@ -488,74 +297,74 @@ int main()
         // GRID
         // =====================================================
 
-        Grid grid;
+        Grid gridReference;
 
         GridRenderer gridRenderer;
 
         gridRenderer.initialize(
-            grid
+            gridReference
         );
 
 
         // =====================================================
-        // H2 ORBITALS
+        // PSI RENDERER
         // =====================================================
 
-        std::vector<
-            std::unique_ptr<MolecularOrbitalRenderer>
-        > h2OrbitalRenderers;
-
-        for (
-            const MolecularOrbitalIsosurface::Surface& surface :
-            h2Surfaces
-        )
-        {
-            h2OrbitalRenderers.push_back(
-                createOrbitalRenderer(
-                    surface,
-                    H2_POSITION_X,
-                    H2_POSITION_Y
-                )
-            );
-        }
-
-
-        // =====================================================
-        // H2O ORBITALS
-        // =====================================================
-
-        std::vector<
-            std::unique_ptr<MolecularOrbitalRenderer>
-        > h2oOrbitalRenderers;
-
-        for (
-            const MolecularOrbitalIsosurface::Surface& surface :
-            h2oSurfaces
-        )
-        {
-            h2oOrbitalRenderers.push_back(
-                createOrbitalRenderer(
-                    surface,
-                    H2O_POSITION_X,
-                    H2O_POSITION_Y
-                )
-            );
-        }
+        std::unique_ptr<MolecularOrbitalRenderer>
+            psiRenderer =
+                createRenderer(
+                    psiSurface,
+                    H2_PSI_POSITION_X,
+                    H2_PSI_POSITION_Y,
+                    glm::vec3(
+                        POSITIVE_RED,
+                        POSITIVE_GREEN,
+                        POSITIVE_BLUE
+                    ),
+                    glm::vec3(
+                        NEGATIVE_RED,
+                        NEGATIVE_GREEN,
+                        NEGATIVE_BLUE
+                    )
+                );
 
 
         // =====================================================
-        // H2 NUCLEI
+        // PSI SQUARED RENDERER
         // =====================================================
 
-        MolecularNucleusRenderer h2NucleusRenderer;
+        std::unique_ptr<MolecularOrbitalRenderer>
+            densityRenderer =
+                createRenderer(
+                    densitySurface,
+                    H2_DENSITY_POSITION_X,
+                    H2_DENSITY_POSITION_Y,
+                    glm::vec3(
+                        DENSITY_RED,
+                        DENSITY_GREEN,
+                        DENSITY_BLUE
+                    ),
+                    glm::vec3(
+                        DENSITY_RED,
+                        DENSITY_GREEN,
+                        DENSITY_BLUE
+                    )
+                );
 
-        h2NucleusRenderer.initialize();
 
-        h2NucleusRenderer.setMolecule(
+        // =====================================================
+        // NUCLEI - PSI
+        // =====================================================
+
+        MolecularNucleusRenderer psiNucleusRenderer;
+
+        psiNucleusRenderer.initialize();
+
+        psiNucleusRenderer.setMolecule(
             h2
         );
 
-        h2NucleusRenderer.setColor(
+        psiNucleusRenderer.setColor(
             glm::vec3(
                 NUCLEUS_RED,
                 NUCLEUS_GREEN,
@@ -563,12 +372,12 @@ int main()
             )
         );
 
-        h2NucleusRenderer.setModelMatrix(
+        psiNucleusRenderer.setModelMatrix(
             glm::translate(
                 glm::mat4(1.0f),
                 glm::vec3(
-                    H2_POSITION_X,
-                    H2_POSITION_Y,
+                    H2_PSI_POSITION_X,
+                    H2_PSI_POSITION_Y,
                     0.0f
                 )
             )
@@ -576,18 +385,18 @@ int main()
 
 
         // =====================================================
-        // H2O NUCLEI
+        // NUCLEI - PSI SQUARED
         // =====================================================
 
-        MolecularNucleusRenderer h2oNucleusRenderer;
+        MolecularNucleusRenderer densityNucleusRenderer;
 
-        h2oNucleusRenderer.initialize();
+        densityNucleusRenderer.initialize();
 
-        h2oNucleusRenderer.setMolecule(
-            h2o
+        densityNucleusRenderer.setMolecule(
+            h2
         );
 
-        h2oNucleusRenderer.setColor(
+        densityNucleusRenderer.setColor(
             glm::vec3(
                 NUCLEUS_RED,
                 NUCLEUS_GREEN,
@@ -595,12 +404,12 @@ int main()
             )
         );
 
-        h2oNucleusRenderer.setModelMatrix(
+        densityNucleusRenderer.setModelMatrix(
             glm::translate(
                 glm::mat4(1.0f),
                 glm::vec3(
-                    H2O_POSITION_X,
-                    H2O_POSITION_Y,
+                    H2_DENSITY_POSITION_X,
+                    H2_DENSITY_POSITION_Y,
                     0.0f
                 )
             )
@@ -638,79 +447,61 @@ int main()
 
 
             // -------------------------------------------------
-            // H2
+            // PSI
             // -------------------------------------------------
 
-            for (
-                std::unique_ptr<MolecularOrbitalRenderer>&
-                    renderer :
-                h2OrbitalRenderers
-            )
+            if (psiRenderer)
             {
-                if (!renderer)
-                {
-                    continue;
-                }
-
-                renderer->setViewMatrix(
+                psiRenderer->setViewMatrix(
                     view
                 );
 
-                renderer->setProjectionMatrix(
+                psiRenderer->setProjectionMatrix(
                     projection
                 );
 
-                renderer->render();
+                psiRenderer->render();
             }
 
 
-            h2NucleusRenderer.setViewMatrix(
+            psiNucleusRenderer.setViewMatrix(
                 view
             );
 
-            h2NucleusRenderer.setProjectionMatrix(
+            psiNucleusRenderer.setProjectionMatrix(
                 projection
             );
 
-            h2NucleusRenderer.render();
+            psiNucleusRenderer.render();
 
 
             // -------------------------------------------------
-            // H2O
+            // PSI SQUARED
             // -------------------------------------------------
 
-            for (
-                std::unique_ptr<MolecularOrbitalRenderer>&
-                    renderer :
-                h2oOrbitalRenderers
-            )
+            if (densityRenderer)
             {
-                if (!renderer)
-                {
-                    continue;
-                }
-
-                renderer->setViewMatrix(
+                densityRenderer->setViewMatrix(
                     view
                 );
 
-                renderer->setProjectionMatrix(
+                densityRenderer->setProjectionMatrix(
                     projection
                 );
 
-                renderer->render();
+                densityRenderer->render();
             }
 
 
-            h2oNucleusRenderer.setViewMatrix(
+            densityNucleusRenderer.setViewMatrix(
                 view
             );
 
-            h2oNucleusRenderer.setProjectionMatrix(
+            densityNucleusRenderer.setProjectionMatrix(
                 projection
             );
 
-            h2oNucleusRenderer.render();
+            densityNucleusRenderer.render();
 
 
             navigation.present();
