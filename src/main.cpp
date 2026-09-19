@@ -26,7 +26,7 @@ constexpr int WINDOW_HEIGHT = 720;
 // 2 = H, He
 // 15 = H ... P
 // 30 = H ... Zn
-constexpr int DISPLAY_ATOM_COUNT = 0;
+constexpr int DISPLAY_ATOM_COUNT = 1;
 
 // true  = mostrar grid
 // false = ocultar grid
