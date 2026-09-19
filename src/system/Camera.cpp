@@ -35,60 +35,84 @@ Camera::Camera(
 // ============================================================
 // MOVE FORWARD / BACKWARD
 // ============================================================
+//
+// Movimiento sobre el plano horizontal de la cámara.
+//
+// W  -> adelante
+// S  -> atrás
+//
+// El movimiento NO modifica distance.
+// Por lo tanto W/S nunca actúa como zoom.
+//
 
 void Camera::moveForward(
     float amount
 )
 {
-    glm::vec3 direction =
+    glm::vec3 forward =
         target - position;
 
-    direction.y = 0.0f;
+
+    // Movimiento horizontal.
+    forward.y = 0.0f;
+
 
     const float length =
-        glm::length(direction);
+        glm::length(forward);
+
 
     if (length < 1.0e-6f)
     {
         return;
     }
 
-    direction /= length;
+
+    forward /= length;
+
 
     position +=
-        direction * amount;
+        forward * amount;
 
     target +=
-        direction * amount;
+        forward * amount;
 }
 
 
 // ============================================================
 // MOVE RIGHT / LEFT
 // ============================================================
+//
+// A -> izquierda
+// D -> derecha
+//
 
 void Camera::moveRight(
     float amount
 )
 {
-    glm::vec3 direction =
+    glm::vec3 forward =
         target - position;
 
-    direction.y = 0.0f;
+
+    forward.y = 0.0f;
+
 
     const float length =
-        glm::length(direction);
+        glm::length(forward);
+
 
     if (length < 1.0e-6f)
     {
         return;
     }
 
-    direction /= length;
+
+    forward /= length;
+
 
     glm::vec3 right =
         glm::cross(
-            direction,
+            forward,
             glm::vec3(
                 0.0f,
                 1.0f,
@@ -96,15 +120,19 @@ void Camera::moveRight(
             )
         );
 
+
     const float rightLength =
         glm::length(right);
+
 
     if (rightLength < 1.0e-6f)
     {
         return;
     }
 
+
     right /= rightLength;
+
 
     position +=
         right * amount;
@@ -117,6 +145,10 @@ void Camera::moveRight(
 // ============================================================
 // MOVE VERTICAL
 // ============================================================
+//
+// Q -> abajo
+// E -> arriba
+//
 
 void Camera::moveVertical(
     float amount
@@ -139,14 +171,17 @@ void Camera::orbit(
     constexpr float sensitivity =
         0.005f;
 
+
     yaw -=
         deltaX * sensitivity;
 
     pitch -=
         deltaY * sensitivity;
 
+
     constexpr float limit =
         glm::half_pi<float>() - 0.05f;
+
 
     pitch =
         std::clamp(
@@ -154,6 +189,7 @@ void Camera::orbit(
             -limit,
             limit
         );
+
 
     updatePosition();
 }
@@ -171,8 +207,10 @@ void Camera::setOrientation(
     this->yaw =
         yaw;
 
+
     constexpr float limit =
         glm::half_pi<float>() - 0.05f;
+
 
     this->pitch =
         std::clamp(
@@ -181,6 +219,7 @@ void Camera::setOrientation(
             limit
         );
 
+
     updatePosition();
 }
 
@@ -188,6 +227,11 @@ void Camera::setOrientation(
 // ============================================================
 // ZOOM
 // ============================================================
+//
+// La rueda modifica exclusivamente la distancia orbital.
+//
+// Esto es independiente de W/S.
+//
 
 void Camera::zoom(
     float delta
@@ -196,8 +240,10 @@ void Camera::zoom(
     constexpr float zoomSpeed =
         1.0f;
 
+
     distance -=
         delta * zoomSpeed;
+
 
     distance =
         std::clamp(
@@ -205,6 +251,7 @@ void Camera::zoom(
             1.0f,
             1000.0f
         );
+
 
     updatePosition();
 }
@@ -228,16 +275,19 @@ void Camera::updatePosition()
     const float sinYaw =
         std::sin(yaw);
 
+
     position.x =
         target.x +
         distance *
         cosPitch *
         sinYaw;
 
+
     position.y =
         target.y -
         distance *
         sinPitch;
+
 
     position.z =
         target.z +
@@ -258,6 +308,7 @@ void Camera::setTarget(
     this->target =
         target;
 
+
     updatePosition();
 }
 
@@ -276,6 +327,7 @@ void Camera::setDistance(
             1.0f,
             1000.0f
         );
+
 
     updatePosition();
 }

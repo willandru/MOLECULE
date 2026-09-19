@@ -27,273 +27,142 @@
 #include <utility>
 #include <vector>
 
-
 namespace
 {
-
-// ============================================================
-// WINDOW
-// ============================================================
 
 constexpr int WINDOW_WIDTH = 1280;
 constexpr int WINDOW_HEIGHT = 720;
 
+// Cantidad de átomos que se desean visualizar.
+// 0 = todos los átomos disponibles.
+// 1 = H
+// 2 = H, He
+// 15 = H ... P
+// 30 = H ... Zn
+constexpr int DISPLAY_ATOM_COUNT = 30;
 
-// ============================================================
-// PERIODIC TABLE LAYOUT
-// ============================================================
-//
-// The first 30 elements are positioned according to their
-// actual periodic-table group and period.
-//
-// Groups:  1 ... 18
-// Periods: 1 ... 4
-//
-// Only elements Z = 1 ... 30 are included.
-//
-// ============================================================
+// Mostrar u ocultar el grid.
+// true  = grid visible
+// false = grid oculto
+constexpr bool SHOW_GRID = false;
 
-constexpr float PERIODIC_TABLE_SPACING_X = 10.0f;
-constexpr float PERIODIC_TABLE_SPACING_Y = 12.0f;
-
-
-// ============================================================
-// ORBITAL GRID
-// ============================================================
+constexpr float PERIODIC_TABLE_SPACING_X = 5.0f;
+constexpr float PERIODIC_TABLE_SPACING_Y = 7.0f;
 
 constexpr std::size_t ORBITAL_GRID_POINTS = 61;
-
 constexpr double ORBITAL_EXTENT = 8.0;
-
 constexpr double ORBITAL_ISOVALUE = 0.02;
 
-
-// ============================================================
-// VISUAL SCALE
-// ============================================================
-
-constexpr float ORBITAL_SCALE = 0.75f;
-
-
-// ============================================================
-// ATOM PLACEMENT
-// ============================================================
+constexpr float ORBITAL_SCALE = 0.45f;
 
 struct AtomPlacement
 {
     int atomicNumber;
-
     int period;
-
     int group;
 };
 
-
-// ============================================================
-// FIRST 30 ELEMENTS
-// ============================================================
-//
-// Period 1:
-// H                                               He
-//
-// Period 2:
-// Li  Be                              B   C   N   O   F   Ne
-//
-// Period 3:
-// Na  Mg                              Al  Si  P   S   Cl  Ar
-//
-// Period 4:
-// K   Ca  Sc  Ti  V   Cr  Mn  Fe  Co  Ni  Cu  Zn
-//
-// ============================================================
-
 const std::vector<AtomPlacement> ATOM_PLACEMENTS =
 {
-    // ========================================================
-    // PERIOD 1
-    // ========================================================
+    // Periodo 1
+    {1, 1, 1},
+    {2, 1, 18},
 
-    {  1, 1,  1 },     // H
-    {  2, 1, 18 },     // He
+    // Periodo 2
+    {3, 2, 1},
+    {4, 2, 2},
+    {5, 2, 13},
+    {6, 2, 14},
+    {7, 2, 15},
+    {8, 2, 16},
+    {9, 2, 17},
+    {10, 2, 18},
 
+    // Periodo 3
+    {11, 3, 1},
+    {12, 3, 2},
+    {13, 3, 13},
+    {14, 3, 14},
+    {15, 3, 15},
+    {16, 3, 16},
+    {17, 3, 17},
+    {18, 3, 18},
 
-    // ========================================================
-    // PERIOD 2
-    // ========================================================
-
-    {  3, 2,  1 },     // Li
-    {  4, 2,  2 },     // Be
-
-    {  5, 2, 13 },     // B
-    {  6, 2, 14 },     // C
-    {  7, 2, 15 },     // N
-    {  8, 2, 16 },     // O
-    {  9, 2, 17 },     // F
-    { 10, 2, 18 },     // Ne
-
-
-    // ========================================================
-    // PERIOD 3
-    // ========================================================
-
-    { 11, 3,  1 },     // Na
-    { 12, 3,  2 },     // Mg
-
-    { 13, 3, 13 },     // Al
-    { 14, 3, 14 },     // Si
-    { 15, 3, 15 },     // P
-    { 16, 3, 16 },     // S
-    { 17, 3, 17 },     // Cl
-    { 18, 3, 18 },     // Ar
-
-
-    // ========================================================
-    // PERIOD 4
-    // ========================================================
-
-    { 19, 4,  1 },     // K
-    { 20, 4,  2 },     // Ca
-    { 21, 4,  3 },     // Sc
-    { 22, 4,  4 },     // Ti
-    { 23, 4,  5 },     // V
-    { 24, 4,  6 },     // Cr
-    { 25, 4,  7 },     // Mn
-    { 26, 4,  8 },     // Fe
-    { 27, 4,  9 },     // Co
-    { 28, 4, 10 },     // Ni
-    { 29, 4, 11 },     // Cu
-    { 30, 4, 12 }      // Zn
+    // Periodo 4
+    {19, 4, 1},
+    {20, 4, 2},
+    {21, 4, 3},
+    {22, 4, 4},
+    {23, 4, 5},
+    {24, 4, 6},
+    {25, 4, 7},
+    {26, 4, 8},
+    {27, 4, 9},
+    {28, 4, 10},
+    {29, 4, 11},
+    {30, 4, 12}
 };
 
-
-// ============================================================
-// CALCULATE ATOM POSITION
-// ============================================================
-//
-// The complete 18-column table is centered around x = 0.
-//
-// Group 1  -> left
-// Group 18 -> right
-//
-// Period 1  -> top
-// Period 4  -> bottom
-//
-// ============================================================
-
-glm::vec3 calculateAtomPosition(
-    const AtomPlacement& placement
-)
+glm::vec3 calculateAtomPosition(const AtomPlacement& placement)
 {
     constexpr float CENTER_GROUP = 9.5f;
     constexpr float CENTER_PERIOD = 2.5f;
 
-
     const float x =
-        (
-            static_cast<float>(placement.group) -
-            CENTER_GROUP
-        )
-        *
+        (static_cast<float>(placement.group) - CENTER_GROUP) *
         PERIODIC_TABLE_SPACING_X;
 
-
     const float y =
-        (
-            CENTER_PERIOD -
-            static_cast<float>(placement.period)
-        )
-        *
+        (CENTER_PERIOD - static_cast<float>(placement.period)) *
         PERIODIC_TABLE_SPACING_Y;
 
-
-    return glm::vec3(
-        x,
-        y,
-        0.0f
-    );
+    return glm::vec3(x, y, 0.0f);
 }
-
-
-// ============================================================
-// VISUAL ORBITAL
-// ============================================================
 
 struct VisualOrbital
 {
     AtomicOrbitalIsosurface::Result surface;
-
-    glm::vec3 position =
-        glm::vec3(0.0f);
-
+    glm::vec3 position = glm::vec3(0.0f);
     std::string atomSymbol;
-
     std::string orbitalName;
 };
-
-
-// ============================================================
-// BUILD ATOMIC ORBITALS
-// ============================================================
 
 std::vector<VisualOrbital> buildAtomOrbitals(
     int Z,
     const RadialGrid& radialGrid,
     const XCFunctional& functional,
-    const glm::vec3& atomPosition
-)
+    const glm::vec3& atomPosition)
 {
     const AtomicConfiguration configuration =
         getAtomicConfiguration(Z);
 
-
     const AtomicResult atom =
-        solveAtom(
-            radialGrid,
-            configuration,
-            functional
-        );
-
+        solveAtom(radialGrid, configuration, functional);
 
     if (!atom.scf.converged)
     {
         throw std::runtime_error(
-            "SCF no convergio para " +
-            atom.symbol
+            "SCF no convergio para " + atom.symbol
         );
     }
 
-
     std::cout
-        << "Atom: "
-        << atom.symbol
-        << " | Z = "
-        << atom.Z
-        << " | Electrons = "
-        << atom.electrons
+        << "Atom: " << atom.symbol
+        << " | Z = " << atom.Z
+        << " | Electrons = " << atom.electrons
         << " | Converged = "
-        << (
-            atom.scf.converged
-                ? "Yes"
-                : "No"
-        )
+        << (atom.scf.converged ? "Yes" : "No")
         << '\n';
 
-
     AtomicOrbital3D orbital3D;
-
     AtomicOrbitalIsosurface isosurface;
 
     std::vector<VisualOrbital> result;
 
-
-    for (const AtomicOrbital& orbital :
-         atom.scf.orbitals)
+    for (const AtomicOrbital& orbital : atom.scf.orbitals)
     {
         const int angularCount =
-            AtomicOrbitalAngular::orbitalCount(
-                orbital.l
-            );
-
+            AtomicOrbitalAngular::orbitalCount(orbital.l);
 
         for (int angularIndex = 0;
              angularIndex < angularCount;
@@ -305,12 +174,8 @@ std::vector<VisualOrbital> buildAtomOrbitals(
                     angularIndex
                 );
 
-
             const std::string angularName =
-                AtomicOrbitalAngular::name(
-                    angularType
-                );
-
+                AtomicOrbitalAngular::name(angularType);
 
             const AtomicOrbital3D::Grid grid =
                 orbital3D.sample(
@@ -321,38 +186,26 @@ std::vector<VisualOrbital> buildAtomOrbitals(
                     ORBITAL_EXTENT
                 );
 
-
             AtomicOrbitalIsosurface::Result surface =
                 isosurface.generate(
                     grid,
                     ORBITAL_ISOVALUE
                 );
 
-
-            if (
-                surface.positive.vertices.empty() &&
-                surface.negative.vertices.empty()
-            )
+            if (surface.positive.vertices.empty() &&
+                surface.negative.vertices.empty())
             {
                 continue;
             }
 
-
             VisualOrbital visual;
 
-            visual.surface =
-                std::move(surface);
-
-            visual.position =
-                atomPosition;
-
-            visual.atomSymbol =
-                atom.symbol;
+            visual.surface = std::move(surface);
+            visual.position = atomPosition;
+            visual.atomSymbol = atom.symbol;
 
             visual.orbitalName =
-                std::to_string(orbital.n) +
-                angularName;
-
+                std::to_string(orbital.n) + angularName;
 
             std::cout
                 << "  "
@@ -360,121 +213,73 @@ std::vector<VisualOrbital> buildAtomOrbitals(
                 << " "
                 << visual.orbitalName
                 << " | + vertices = "
-                << visual.surface
-                       .positive
-                       .vertices
-                       .size()
+                << visual.surface.positive.vertices.size()
                 << " | + triangles = "
-                << visual.surface
-                       .positive
-                       .indices
-                       .size() / 3
+                << visual.surface.positive.indices.size() / 3
                 << " | - vertices = "
-                << visual.surface
-                       .negative
-                       .vertices
-                       .size()
+                << visual.surface.negative.vertices.size()
                 << " | - triangles = "
-                << visual.surface
-                       .negative
-                       .indices
-                       .size() / 3
+                << visual.surface.negative.indices.size() / 3
                 << '\n';
 
-
-            result.push_back(
-                std::move(visual)
-            );
+            result.push_back(std::move(visual));
         }
     }
-
 
     return result;
 }
 
-}
-
-
-// ============================================================
-// MAIN
-// ============================================================
+} // namespace
 
 int main()
 {
     try
     {
-        // ====================================================
-        // NAVIGATION
-        // ====================================================
-
         NavigationViewController navigation(
             WINDOW_WIDTH,
             WINDOW_HEIGHT,
             "Molecule"
         );
 
-
-        // ====================================================
-        // OPENGL
-        // ====================================================
-
         glEnable(GL_DEPTH_TEST);
 
-
-        // ====================================================
-        // GRID
-        // ====================================================
-
         Grid grid;
-
         GridRenderer gridRenderer;
-
-        gridRenderer.initialize(
-            grid
-        );
-
-
-        // ====================================================
-        // DFT
-        // ====================================================
+        gridRenderer.initialize(grid);
 
         PBE96 pbe96;
-
 
         RadialGrid radialGrid(
             DFTConstants::GRID_POINTS,
             DFTConstants::RMAX
         );
 
+        std::vector<VisualOrbital> visualOrbitals;
+        std::vector<std::unique_ptr<OrbitalRenderer>> orbitalRenderers;
 
-        // ====================================================
-        // VISUAL ORBITALS
-        // ====================================================
+        const int atomCount =
+            DISPLAY_ATOM_COUNT == 0
+                ? static_cast<int>(ATOM_PLACEMENTS.size())
+                : DISPLAY_ATOM_COUNT;
 
-        std::vector<VisualOrbital>
-            visualOrbitals;
-
-
-        std::vector<
-            std::unique_ptr<OrbitalRenderer>
-        > orbitalRenderers;
-
-
-        // ====================================================
-        // CALCULATE FIRST 30 ELEMENTS
-        // ====================================================
-
-        for (const AtomPlacement& placement :
-             ATOM_PLACEMENTS)
+        if (atomCount < 1 ||
+            atomCount > static_cast<int>(ATOM_PLACEMENTS.size()))
         {
+            throw std::runtime_error(
+                "DISPLAY_ATOM_COUNT debe estar entre 1 y 30, "
+                "o ser 0 para mostrar todos."
+            );
+        }
+
+        for (int i = 0; i < atomCount; ++i)
+        {
+            const AtomPlacement& placement =
+                ATOM_PLACEMENTS[static_cast<std::size_t>(i)];
+
             const glm::vec3 atomPosition =
-                calculateAtomPosition(
-                    placement
-                );
+                calculateAtomPosition(placement);
 
-
-            std::vector<VisualOrbital>
-                atomOrbitals =
+            std::vector<VisualOrbital> atomOrbitals =
                 buildAtomOrbitals(
                     placement.atomicNumber,
                     radialGrid,
@@ -482,9 +287,7 @@ int main()
                     atomPosition
                 );
 
-
-            for (VisualOrbital& orbital :
-                 atomOrbitals)
+            for (VisualOrbital& orbital : atomOrbitals)
             {
                 visualOrbitals.push_back(
                     std::move(orbital)
@@ -492,106 +295,66 @@ int main()
             }
         }
 
-
-        // ====================================================
-        // CREATE GPU RENDERERS
-        // ====================================================
-
         orbitalRenderers.reserve(
             visualOrbitals.size()
         );
 
-
-        for (const VisualOrbital& orbital :
-             visualOrbitals)
+        for (const VisualOrbital& orbital : visualOrbitals)
         {
-            std::unique_ptr<OrbitalRenderer>
-                renderer =
+            auto renderer =
                 std::make_unique<OrbitalRenderer>();
 
-
             renderer->initialize();
-
 
             renderer->setSurface(
                 orbital.surface
             );
 
-
             renderer->setPositiveColor(
-                glm::vec3(
-                    0.10f,
-                    0.35f,
-                    1.00f
-                )
+                glm::vec3(0.10f, 0.35f, 1.00f)
             );
-
 
             renderer->setNegativeColor(
-                glm::vec3(
-                    1.00f,
-                    0.15f,
-                    0.15f
-                )
+                glm::vec3(1.00f, 0.15f, 0.15f)
             );
-
 
             orbitalRenderers.push_back(
                 std::move(renderer)
             );
         }
 
-
         std::cout
-            << "\nTotal visual orbitals: "
-            << visualOrbitals.size()
+            << "\nAtoms visualized: "
+            << atomCount
             << '\n';
 
-
-        // ====================================================
-        // MAIN LOOP
-        // ====================================================
+        std::cout
+            << "Total visual orbitals: "
+            << visualOrbitals.size()
+            << '\n';
 
         while (!navigation.shouldClose())
         {
             navigation.update();
-
-
-            // =================================================
-            // CLEAR
-            // =================================================
 
             glClear(
                 GL_COLOR_BUFFER_BIT |
                 GL_DEPTH_BUFFER_BIT
             );
 
-
-            // =================================================
-            // MATRICES
-            // =================================================
-
             const glm::mat4& view =
                 navigation.getViewMatrix();
-
 
             const glm::mat4& projection =
                 navigation.getProjectionMatrix();
 
-
-            // =================================================
-            // GRID
-            // =================================================
-
-            gridRenderer.render(
-                view,
-                projection
-            );
-
-
-            // =================================================
-            // ORBITALS
-            // =================================================
+            if (SHOW_GRID)
+            {
+                gridRenderer.render(
+                    view,
+                    projection
+                );
+            }
 
             for (std::size_t i = 0;
                  i < orbitalRenderers.size();
@@ -600,47 +363,33 @@ int main()
                 const VisualOrbital& orbital =
                     visualOrbitals[i];
 
-
                 const glm::mat4 model =
                     glm::translate(
                         glm::mat4(1.0f),
                         orbital.position
-                    )
-                    *
+                    ) *
                     glm::scale(
                         glm::mat4(1.0f),
-                        glm::vec3(
-                            ORBITAL_SCALE
-                        )
+                        glm::vec3(ORBITAL_SCALE)
                     );
-
 
                 orbitalRenderers[i]->setModelMatrix(
                     model
                 );
 
-
                 orbitalRenderers[i]->setViewMatrix(
                     view
                 );
-
 
                 orbitalRenderers[i]->setProjectionMatrix(
                     projection
                 );
 
-
                 orbitalRenderers[i]->render();
             }
 
-
-            // =================================================
-            // PRESENT
-            // =================================================
-
             navigation.present();
         }
-
 
         return 0;
     }

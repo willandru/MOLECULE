@@ -38,6 +38,7 @@ NavigationViewController::NavigationViewController(
             true
         );
 
+
     if (window->getHandle() == nullptr)
     {
         delete window;
@@ -68,18 +69,23 @@ NavigationViewController::NavigationViewController(
     camera =
         new Camera(
             glm::vec3(0.0f),
-            10.0f,
+            95.0f,
             45.0f,
             0.01f,
             1000.0f
         );
 
-    // Vista inicial:
-    // cámara frente al origen, ligeramente elevada.
+
+    // Vista frontal de la tabla periódica.
+    //
+    // Yaw = 180°  -> cámara frente al eje Z.
+    // Pitch = 0°  -> sin inclinación vertical.
+    //
     camera->setOrientation(
         glm::radians(180.0f),
-        glm::radians(60.0f)
+        glm::radians(0.0f)
     );
+
 
     camera->setAspectRatio(
         window->getAspectRatio()
@@ -96,6 +102,7 @@ NavigationViewController::NavigationViewController(
                 window->getHandle()
             )
         );
+
 
     mouse =
         new InputMouse(
@@ -119,6 +126,7 @@ NavigationViewController::NavigationViewController(
 
     viewMatrix =
         camera->getViewMatrix();
+
 
     projectionMatrix =
         camera->getProjectionMatrix();
@@ -150,10 +158,12 @@ bool NavigationViewController::shouldClose() const
         return true;
     }
 
+
     if (window->shouldClose())
     {
         return true;
     }
+
 
     if (
         keyboard != nullptr &&
@@ -162,6 +172,7 @@ bool NavigationViewController::shouldClose() const
     {
         return true;
     }
+
 
     return false;
 }
@@ -190,6 +201,7 @@ void NavigationViewController::update()
     // ========================================================
 
     timer->update();
+
 
     const float deltaTime =
         timer->getDeltaTime();
@@ -221,6 +233,7 @@ void NavigationViewController::update()
         const glm::vec2 delta =
             mouse->getDelta();
 
+
         camera->orbit(
             delta.x,
             delta.y
@@ -235,11 +248,13 @@ void NavigationViewController::update()
     const float scrollDelta =
         mouse->getScrollDelta();
 
+
     if (scrollDelta != 0.0f)
     {
         camera->zoom(
             scrollDelta
         );
+
 
         mouse->clearScrollDelta();
     }
@@ -261,6 +276,7 @@ void NavigationViewController::update()
     viewMatrix =
         camera->getViewMatrix();
 
+
     projectionMatrix =
         camera->getProjectionMatrix();
 }
@@ -276,6 +292,7 @@ void NavigationViewController::present()
     {
         return;
     }
+
 
     window->swapBuffers();
     window->pollEvents();
