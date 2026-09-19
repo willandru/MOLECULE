@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <algorithm>
 #include <cmath>
 #include <exception>
 #include <iostream>
@@ -48,6 +49,7 @@ constexpr float NUCLEUS_RED = 0.90f;
 constexpr float NUCLEUS_GREEN = 0.90f;
 constexpr float NUCLEUS_BLUE = 0.90f;
 
+
 double maximumAbsoluteValue(
     const std::vector<double>& values
 )
@@ -56,17 +58,158 @@ double maximumAbsoluteValue(
 
     for (const double value : values)
     {
-        maximum =
-            std::max(
-                maximum,
-                std::abs(value)
-            );
+        maximum = std::max(
+            maximum,
+            std::abs(value)
+        );
     }
 
     return maximum;
 }
 
+
+bool sameSpatialOrbital(
+    const MolecularOrbital& first,
+    const MolecularOrbital& second
+)
+{
+    if (first.psi.size() != second.psi.size())
+    {
+        return false;
+    }
+
+    if (
+        std::abs(
+            first.eigenvalue -
+            second.eigenvalue
+        ) > 1.0e-10
+    )
+    {
+        return false;
+    }
+
+    for (std::size_t i = 0; i < first.psi.size(); ++i)
+    {
+        if (
+            std::abs(
+                first.psi[i] -
+                second.psi[i]
+            ) > 1.0e-10
+        )
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
+
+
+std::vector<MolecularOrbital> extractUniqueSpatialOrbitals(
+    const std::vector<MolecularOrbital>& orbitals
+)
+{
+    std::vector<MolecularOrbital> uniqueOrbitals;
+
+    for (const MolecularOrbital& orbital : orbitals)
+    {
+        bool alreadyPresent = false;
+
+        for (
+            const MolecularOrbital& existing :
+            uniqueOrbitals
+        )
+        {
+            if (
+                sameSpatialOrbital(
+                    orbital,
+                    existing
+                )
+            )
+            {
+                alreadyPresent = true;
+                break;
+            }
+        }
+
+        if (!alreadyPresent)
+        {
+            uniqueOrbitals.push_back(
+                orbital
+            );
+        }
+    }
+
+    return uniqueOrbitals;
+}
+
+
+MolecularOrbitalIsosurface::Surface generateSurface(
+    const CartesianGrid& grid,
+    const MolecularOrbital& orbital
+)
+{
+    return MolecularOrbitalIsosurface::generate(
+        grid,
+        orbital.psi,
+        ISOVALUE
+    );
+}
+
+
+std::unique_ptr<MolecularOrbitalRenderer>
+createOrbitalRenderer(
+    const MolecularOrbitalIsosurface::Surface& surface,
+    float x,
+    float y
+)
+{
+    if (surface.empty())
+    {
+        return nullptr;
+    }
+
+    auto renderer =
+        std::make_unique<MolecularOrbitalRenderer>();
+
+    renderer->initialize();
+
+    renderer->setSurface(
+        surface
+    );
+
+    renderer->setPositiveColor(
+        glm::vec3(
+            POSITIVE_RED,
+            POSITIVE_GREEN,
+            POSITIVE_BLUE
+        )
+    );
+
+    renderer->setNegativeColor(
+        glm::vec3(
+            NEGATIVE_RED,
+            NEGATIVE_GREEN,
+            NEGATIVE_BLUE
+        )
+    );
+
+    renderer->setModelMatrix(
+        glm::translate(
+            glm::mat4(1.0f),
+            glm::vec3(
+                x,
+                y,
+                0.0f
+            )
+        )
+    );
+
+    return renderer;
+}
+
+}
+
 
 int main()
 {
@@ -186,7 +329,22 @@ int main()
 
 
         // =====================================================
-        // ORBITAL INFORMATION
+        // UNIQUE SPATIAL ORBITALS
+        // =====================================================
+
+        const std::vector<MolecularOrbital> h2Orbitals =
+            extractUniqueSpatialOrbitals(
+                h2Result.scf.molecularOrbitals
+            );
+
+        const std::vector<MolecularOrbital> h2oOrbitals =
+            extractUniqueSpatialOrbitals(
+                h2oResult.scf.molecularOrbitals
+            );
+
+
+        // =====================================================
+        // INFORMATION
         // =====================================================
 
         std::cout
@@ -194,19 +352,24 @@ int main()
             << "H2 MOLECULAR ORBITALS\n"
             << "========================================\n";
 
+        std::cout
+            << "Returned orbitals: "
+            << h2Result.scf.molecularOrbitals.size()
+            << '\n';
+
+        std::cout
+            << "Unique spatial orbitals: "
+            << h2Orbitals.size()
+            << '\n';
+
         for (
             std::size_t i = 0;
-            i < h2Result.scf.molecularOrbitals.size();
+            i < h2Orbitals.size();
             ++i
         )
         {
             const MolecularOrbital& orbital =
-                h2Result.scf.molecularOrbitals[i];
-
-            const double maximum =
-                maximumAbsoluteValue(
-                    orbital.psi
-                );
+                h2Orbitals[i];
 
             std::cout
                 << "MO "
@@ -216,7 +379,9 @@ int main()
                 << " | electrons = "
                 << orbital.electrons
                 << " | max|psi| = "
-                << maximum
+                << maximumAbsoluteValue(
+                    orbital.psi
+                )
                 << '\n';
         }
 
@@ -226,19 +391,24 @@ int main()
             << "H2O MOLECULAR ORBITALS\n"
             << "========================================\n";
 
+        std::cout
+            << "Returned orbitals: "
+            << h2oResult.scf.molecularOrbitals.size()
+            << '\n';
+
+        std::cout
+            << "Unique spatial orbitals: "
+            << h2oOrbitals.size()
+            << '\n';
+
         for (
             std::size_t i = 0;
-            i < h2oResult.scf.molecularOrbitals.size();
+            i < h2oOrbitals.size();
             ++i
         )
         {
             const MolecularOrbital& orbital =
-                h2oResult.scf.molecularOrbitals[i];
-
-            const double maximum =
-                maximumAbsoluteValue(
-                    orbital.psi
-                );
+                h2oOrbitals[i];
 
             std::cout
                 << "MO "
@@ -248,7 +418,9 @@ int main()
                 << " | electrons = "
                 << orbital.electrons
                 << " | max|psi| = "
-                << maximum
+                << maximumAbsoluteValue(
+                    orbital.psi
+                )
                 << '\n';
         }
 
@@ -262,23 +434,19 @@ int main()
         > h2Surfaces;
 
         h2Surfaces.reserve(
-            h2Result.scf.molecularOrbitals.size()
+            h2Orbitals.size()
         );
 
         for (
             const MolecularOrbital& orbital :
-            h2Result.scf.molecularOrbitals
+            h2Orbitals
         )
         {
-            MolecularOrbitalIsosurface::Surface surface =
-                MolecularOrbitalIsosurface::generate(
-                    h2Grid,
-                    orbital.psi,
-                    ISOVALUE
-                );
-
             h2Surfaces.push_back(
-                std::move(surface)
+                generateSurface(
+                    h2Grid,
+                    orbital
+                )
             );
         }
 
@@ -288,23 +456,19 @@ int main()
         > h2oSurfaces;
 
         h2oSurfaces.reserve(
-            h2oResult.scf.molecularOrbitals.size()
+            h2oOrbitals.size()
         );
 
         for (
             const MolecularOrbital& orbital :
-            h2oResult.scf.molecularOrbitals
+            h2oOrbitals
         )
         {
-            MolecularOrbitalIsosurface::Surface surface =
-                MolecularOrbitalIsosurface::generate(
-                    h2oGrid,
-                    orbital.psi,
-                    ISOVALUE
-                );
-
             h2oSurfaces.push_back(
-                std::move(surface)
+                generateSurface(
+                    h2oGrid,
+                    orbital
+                )
             );
         }
 
@@ -334,7 +498,7 @@ int main()
 
 
         // =====================================================
-        // H2 ORBITAL RENDERERS
+        // H2 ORBITALS
         // =====================================================
 
         std::vector<
@@ -346,59 +510,18 @@ int main()
             h2Surfaces
         )
         {
-            if (surface.empty())
-            {
-                h2OrbitalRenderers.push_back(
-                    nullptr
-                );
-
-                continue;
-            }
-
-            auto renderer =
-                std::make_unique<MolecularOrbitalRenderer>();
-
-            renderer->initialize();
-
-            renderer->setSurface(
-                surface
-            );
-
-            renderer->setPositiveColor(
-                glm::vec3(
-                    POSITIVE_RED,
-                    POSITIVE_GREEN,
-                    POSITIVE_BLUE
-                )
-            );
-
-            renderer->setNegativeColor(
-                glm::vec3(
-                    NEGATIVE_RED,
-                    NEGATIVE_GREEN,
-                    NEGATIVE_BLUE
-                )
-            );
-
-            renderer->setModelMatrix(
-                glm::translate(
-                    glm::mat4(1.0f),
-                    glm::vec3(
-                        H2_POSITION_X,
-                        H2_POSITION_Y,
-                        0.0f
-                    )
-                )
-            );
-
             h2OrbitalRenderers.push_back(
-                std::move(renderer)
+                createOrbitalRenderer(
+                    surface,
+                    H2_POSITION_X,
+                    H2_POSITION_Y
+                )
             );
         }
 
 
         // =====================================================
-        // H2O ORBITAL RENDERERS
+        // H2O ORBITALS
         // =====================================================
 
         std::vector<
@@ -410,53 +533,12 @@ int main()
             h2oSurfaces
         )
         {
-            if (surface.empty())
-            {
-                h2oOrbitalRenderers.push_back(
-                    nullptr
-                );
-
-                continue;
-            }
-
-            auto renderer =
-                std::make_unique<MolecularOrbitalRenderer>();
-
-            renderer->initialize();
-
-            renderer->setSurface(
-                surface
-            );
-
-            renderer->setPositiveColor(
-                glm::vec3(
-                    POSITIVE_RED,
-                    POSITIVE_GREEN,
-                    POSITIVE_BLUE
-                )
-            );
-
-            renderer->setNegativeColor(
-                glm::vec3(
-                    NEGATIVE_RED,
-                    NEGATIVE_GREEN,
-                    NEGATIVE_BLUE
-                )
-            );
-
-            renderer->setModelMatrix(
-                glm::translate(
-                    glm::mat4(1.0f),
-                    glm::vec3(
-                        H2O_POSITION_X,
-                        H2O_POSITION_Y,
-                        0.0f
-                    )
-                )
-            );
-
             h2oOrbitalRenderers.push_back(
-                std::move(renderer)
+                createOrbitalRenderer(
+                    surface,
+                    H2O_POSITION_X,
+                    H2O_POSITION_Y
+                )
             );
         }
 
@@ -546,7 +628,7 @@ int main()
 
 
             // -------------------------------------------------
-            // Grid
+            // GRID
             // -------------------------------------------------
 
             gridRenderer.render(
@@ -556,11 +638,12 @@ int main()
 
 
             // -------------------------------------------------
-            // H2 - ALL ORBITALS
+            // H2
             // -------------------------------------------------
 
             for (
-                std::unique_ptr<MolecularOrbitalRenderer>& renderer :
+                std::unique_ptr<MolecularOrbitalRenderer>&
+                    renderer :
                 h2OrbitalRenderers
             )
             {
@@ -581,10 +664,6 @@ int main()
             }
 
 
-            // -------------------------------------------------
-            // H2 NUCLEI
-            // -------------------------------------------------
-
             h2NucleusRenderer.setViewMatrix(
                 view
             );
@@ -597,11 +676,12 @@ int main()
 
 
             // -------------------------------------------------
-            // H2O - ALL ORBITALS
+            // H2O
             // -------------------------------------------------
 
             for (
-                std::unique_ptr<MolecularOrbitalRenderer>& renderer :
+                std::unique_ptr<MolecularOrbitalRenderer>&
+                    renderer :
                 h2oOrbitalRenderers
             )
             {
@@ -621,10 +701,6 @@ int main()
                 renderer->render();
             }
 
-
-            // -------------------------------------------------
-            // H2O NUCLEI
-            // -------------------------------------------------
 
             h2oNucleusRenderer.setViewMatrix(
                 view
